@@ -23,6 +23,9 @@ UNITS ?= 0
 FEATURE_DEFS = -DWITH_LAPLACE -DWITH_DESOLVE -DWITH_EQW -DWITH_PLOT
 ifeq ($(UNITS),1)
     FEATURE_DEFS += -DWITH_UNITS
+else
+    # FlowCE Steps: giac's Python syntax (28.4 KB) gives its room to the worked steps (steps.cc)
+    FEATURE_DEFS += -DNO_PYTHON_SYNTAX
 endif
 
 ifeq ($(APPLANG),fr)
