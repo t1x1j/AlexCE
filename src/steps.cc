@@ -286,6 +286,12 @@ static gen den(const gen & e){
   if (is_strictly_positive(-e,contextptr)) return sym1(at_neg,-e);
   return e;
 }
+// c*g as on paper, c evaluated: g, 3*g, 3*g/4 (not g/1, 1/2*g)
+static gen cmul(const gen & c0,const gen & g){
+  const gen c=eval(c0,1,contextptr);
+  if (c.type==_FRAC) return sym2(at_division,mul(c._FRACptr->num,g),c._FRACptr->den);
+  return is_minus_one(c)?neg(g):mul(c,g);
+}
 // dx, du: the differential of v, for the choice lines
 static gen dvar(const gen & v){ return gen("d"+v.print(contextptr),contextptr); }
 // E (its integrate nodes unevaluated) is an antiderivative of f in v (derive does not know a
@@ -467,6 +473,65 @@ static __attribute__((noinline)) bool again(gen & E,const gen & f,const gen & v,
   return true;
 }
 
+static gen deg_v(const gen & p,const gen & v){ return _degree(makesequence(p,v),contextptr); }
+// f evaluated, a rational function of v alone (no other variable or function); 0 otherwise
+static gen rat_v(const gen & f,const gen & v){
+  const gen e=eval(f,1,contextptr);
+  const vecteur l=lvar(e);
+  return l.size()==1 && l.front()==v?e:gen(0);
+}
+// a rational function of v: division first when not proper (Polynomial division), else the
+// decomposition (Partial fractions); one term left (an irreducible quadratic below) goes to split_num
+static __attribute__((noinline)) bool pfrac(const gen & f,const gen & v,gen & r,string & label,string & choice){
+  const gen e=rat_v(f,v);
+  if (is_zero(e)) return false;
+  const gen N=_numer(e,contextptr),D=_denom(e,contextptr);
+  if (free_of(D,v)) return false;
+  const gen dn=deg_v(N,v),dd=deg_v(D,v);
+  if (dn.type!=_INT_ || dd.type!=_INT_) return false;
+  if (dn.val>=dd.val){
+    const gen Q=_quo(makesequence(N,D,v),contextptr),R=_rem(makesequence(N,D,v),contextptr);
+    const gen RD=gen(normal(R/D,contextptr).print(contextptr),contextptr);
+    r=is_zero(R)?inode(Q,v):sym2(at_plus,inode(Q,v),inode(RD,v));
+    label="Polynomial division";
+    choice=m(txt(f)+" = "+txt(Q)+(is_zero(R)?string():" + "+txt(RD)));
+    return true;
+  }
+  const gen P=gen(_partfrac(makesequence(e,v),contextptr).print(contextptr),contextptr);
+  if (!is_op(P,at_plus) && !is_op(P,at_binary_minus)) return false;
+  r=inode(P,v);
+  label="Partial fractions";
+  choice=m(txt(f)+" = "+txt(P));
+  return true;
+}
+// (Bx+C)/Q, Q quadratic: k*Q'/Q + C2/Q (k = B over Q's x coefficient), the first a ln|Q| by a
+// u-substitution, the second an arctangent; C/Q alone: Q's square completed
+static __attribute__((noinline)) bool split_num(const gen & f,const gen & v,gen & r,string & label,string & choice){
+  const gen e=rat_v(f,v);
+  if (is_zero(e)) return false;
+  const gen N=_numer(e,contextptr),Q=_denom(e,contextptr);
+  const gen dq=deg_v(Q,v),dn=deg_v(N,v);
+  if (dq.type!=_INT_ || dq.val!=2 || dn.type!=_INT_ || dn.val>1) return false;
+  const gen dQ=normal(derive(Q,v,contextptr),contextptr);
+  if (dn.val==0){
+    // a*((x+h)^2+k): the leading coefficient out first
+    const gen a=_coeff(makesequence(Q,v,2),contextptr),S0=gen(_canonical_form(makesequence(normal(Q/a,contextptr),v),contextptr).print(contextptr),contextptr);
+    const gen S=is_one(a)?S0:mul(a,S0);
+    if (S==Q) return false;
+    r=inode(sym2(at_division,N,S),v);
+    label="Complete the square";
+    choice=m(txt(Q)+" = "+txt(S));
+    return true;
+  }
+  const gen k=normal(_coeff(makesequence(N,v,1),contextptr)/_coeff(makesequence(dQ,v,1),contextptr),contextptr);
+  const gen C2=normal(N-k*dQ,contextptr),I1=mul(k,inode(sym2(at_division,dQ,Q),v));
+  r=is_zero(C2)?I1:sym2(at_plus,I1,inode(sym2(at_division,C2,Q),v));
+  label="Split the numerator";
+  const bool mi=is_strictly_positive(-C2,contextptr);
+  choice=m(txt(N)+" = "+txt(k)+"*("+txt(dQ)+")"+(is_zero(C2)?string():(mi?" - ":" + ")+txt(mi?-C2:C2)));
+  return true;
+}
+
 // one rule applied to the integral of f in v: its result r (with integrate nodes left for the
 // rest), the rule's name, what was chosen, and steps to show before this one (pre: a
 // u-substitution's integral in u); false: no rule
@@ -513,9 +578,9 @@ static __attribute__((noinline)) bool irule(const gen & f,const gen & v,gen & r,
       const gen c=lin_coef(base,v);
       if (!is_zero(c)){
         choice=m("u = "+txt(base));
-        if (is_one(nb)){ r=sym2(at_division,mul(p,sym1(at_ln,sym1(at_abs,base))),den(c)); label="Log rule"; return true; }
+        if (is_one(nb)){ r=cmul(p/c,sym1(at_ln,sym1(at_abs,base))); label="Log rule"; return true; }
         const gen e=eval(1-nb,1,contextptr);
-        r=sym2(at_division,mul(p,pw(base,e)),den(eval(e*c,1,contextptr)));
+        r=sym2(at_division,cmul(p/c,pw(base,e)),den(e));
         label="Power rule";
         return true;
       }
@@ -526,9 +591,9 @@ static __attribute__((noinline)) bool irule(const gen & f,const gen & v,gen & r,
           const gen & sq=t[i], & k=t[1-i];
           if (!is_op(sq,at_pow) || !(args(sq)[1]==2) || !free_of(k,v) || !is_strictly_positive(k,contextptr)) continue;
           const gen w=args(sq)[0],c2=w==v?gen(1):lin_coef(w,v);
-          if (is_zero(c2) || (w==v && is_one(k))) continue; // (1/(1+x^2): the table)
-          const gen sk=eval(sym1(at_sqrt,k),1,contextptr),c=eval(p/(c2*sk),1,contextptr),at=sym1(at_atan,sym2(at_division,w,sk));
-          r=c.type==_FRAC?sym2(at_division,mul(c._FRACptr->num,at),c._FRACptr->den):mul(c,at);
+          if (is_zero(c2) || (w==v && is_one(k) && is_one(p))) continue; // (1/(1+x^2): the table)
+          const gen sk=eval(sym1(at_sqrt,k),1,contextptr),c=eval(p/(c2*sk),1,contextptr),at=sym1(at_atan,is_one(sk)?w:sym2(at_division,w,sk));
+          r=cmul(c,at);
           label="Integral of 1/(u^2+a^2)";
           choice=m("a = "+txt(sk));
           return true;
@@ -583,7 +648,7 @@ static __attribute__((noinline)) bool irule(const gen & f,const gen & v,gen & r,
   }
   r=table_int(f,v,label,choice);
   if (!is_zero(r)) return true;
-  return usub(f,v,r,label,choice,pre) || parts(f,v,r,label,choice);
+  return usub(f,v,r,label,choice,pre) || pfrac(f,v,r,label,choice) || split_num(f,v,r,label,choice) || parts(f,v,r,label,choice);
 }
 
 // the first integrate(.,v) node of E (leftmost, outermost) replaced by its rule: 1 done, 0 no node

@@ -66,6 +66,13 @@ integrate(1/(x^2+4),x) :: Integral of 1/(u^2+a^2)
 integrate(3/((x+2)^2+9),x) :: Integral of 1/(u^2+a^2)
 integrate((x+1)*(x-2),x) :: Expand, Difference rule
 integrate((1-x^2)^2,x) :: Expand
+integrate(1/(x^2-1),x) :: Partial fractions, Difference rule, Log rule, Log rule
+integrate((x^3+1)/(x^2-1),x) :: Polynomial division, Power rule, Log rule
+integrate(1/(x*(x+1)^2),x) :: Partial fractions, Log rule, Power rule, Log rule
+integrate((3x+5)/((x-1)*(x^2+1)),x) :: Partial fractions, Log rule, Split the numerator
+integrate((x+4)/(x^2+4x+8),x) :: Split the numerator, u-substitution, Complete the square, Integral of 1/(u^2+a^2)
+integrate(1/(4x^2-4x+3),x) :: Complete the square, Integral of 1/(u^2+a^2)
+integrate(1/(x^3+x),x) :: Partial fractions
 integrate(u*cos(u^2),u) :: u-substitution, Integral of cos, Substitute back :: Let `w = u^2`
 integrate(x*e^x,x) :: Integration by parts, Integral of exp :: u = x
 integrate(x^2*e^x,x) :: Integration by parts, Integration by parts, Integral of exp
