@@ -348,7 +348,7 @@ static gen free_var(const gen & f){
 static int usub_depth; // u-substitutions inside one another (at most 2)
 // u-substitution: f = G(b)*b' for a candidate b; the integral of G(u) in u traced on its own
 // (its steps in pre, after the substitution step), then u = b put back
-static bool usub(const gen & f,const gen & v,gen & r,string & label,string & choice,vector<step> & pre){
+static __attribute__((noinline)) bool usub(const gen & f,const gen & v,gen & r,string & label,string & choice,vector<step> & pre){
   if (usub_depth>=2) return false;
   vecteur c;
   candidates(f,v,c);
@@ -400,7 +400,7 @@ static int liate(const gen & g,const gen & v){
 static int parts_count; // integrations by parts in this problem (at most 4)
 // integration by parts: f = u*dv (u by LIATE, dv the rest, v its antiderivative by giac),
 // u*v - integral of v*du
-static bool parts(const gen & f,const gen & v,gen & r,string & label,string & choice){
+static __attribute__((noinline)) bool parts(const gen & f,const gen & v,gen & r,string & label,string & choice){
   if (parts_count>=4) return false;
   const vecteur fs=is_op(f,at_prod)?args(f):vecteur(1,f);
   if (fs.size()==1 && liate(f,v)>1) return false; // alone: ln, inverse trig (dv = dx)
@@ -421,7 +421,7 @@ static bool parts(const gen & f,const gen & v,gen & r,string & label,string & ch
   return true;
 }
 // the integral of f appearing again in E (by parts twice: e^x sin x): E = A + k*I, so I = A/(1-k)
-static bool again(gen & E,const gen & f,const gen & v,string & label,string & choice){
+static __attribute__((noinline)) bool again(gen & E,const gen & f,const gen & v,string & label,string & choice){
   const vecteur nodes=lop(E,at_integrate);
   if (nodes.size()!=1) return false;
   const gen c=ratnormal(eval(args(nodes[0])[0],1,contextptr)/eval(f,1,contextptr),contextptr);
@@ -444,7 +444,7 @@ static bool again(gen & E,const gen & f,const gen & v,string & label,string & ch
 // one rule applied to the integral of f in v: its result r (with integrate nodes left for the
 // rest), the rule's name, what was chosen, and steps to show before this one (pre: a
 // u-substitution's integral in u); false: no rule
-static bool irule(const gen & f,const gen & v,gen & r,string & label,string & choice,vector<step> & pre){
+static __attribute__((noinline)) bool irule(const gen & f,const gen & v,gen & r,string & label,string & choice,vector<step> & pre){
   choice.clear();
   if (free_of(f,v)){ r=mul(f,v); label="Constant rule"; return true; }
   if (f==v){ r=sym2(at_division,sym2(at_pow,v,2),2); label="Power rule"; return true; }
@@ -539,7 +539,7 @@ static int iexpand(gen & E,const gen & v,string & label,string & choice,vector<s
 }
 
 // the steps of E (integrate nodes in v), an integral of f, into out until no node is left
-static int itrace(gen & E,const gen & f,const gen & v,vector<step> & out){
+static __attribute__((noinline)) int itrace(gen & E,const gen & f,const gen & v,vector<step> & out){
   for (;;){
     string label,choice;
     vector<step> pre;
