@@ -25,6 +25,8 @@ bool focus_busy_tick();                 // giac's control_c_hook while calculati
 int focus_clear_hero();                 // CLEAR on an empty edit line: 1 if it hid the result
 const mi_metrics & focus_metrics();     // metrics of the edit line as drawn (caret moves)
 int focus_result_line();                // the output line F4 cycles (selected, or shown large); -1
+int focus_input_line(int out);          // the input line of the calculation whose result is line out; -1
+int focus_steps_key();                  // 2nd F4 shows steps: the result F4 would cycle is a derivative's
 void focus_repaint(int y0, int y1);     // repaints stage rows [y0, y1) from the model
 int focus_hist_line(int dir);           // history by calculations: the line for up/down/left/right
 // a card over the dimmed stage: a title, n choices; returns the index chosen, -1 if cancelled

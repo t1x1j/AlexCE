@@ -19,4 +19,6 @@ int steps_applicable(const char * input);
 // problem in textbook notation. STEPS_NONE: no textbook explanation, or a check failed (out is
 // empty then); STEPS_STOPPED: interrupted (ON, out of memory)
 int steps_build(const char * input,const std::string & answer,std::string & problem,std::vector<step> & out);
+// the Steps screen (focus_steps.cc): problem and v, or the message of status (oom: out of memory)
+void focus_steps(const std::string & problem,const std::vector<step> & v,int status,int oom);
 #endif

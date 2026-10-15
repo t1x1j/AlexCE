@@ -1,11 +1,11 @@
 # Steps of derivatives (steps.cc): the labels expected, in order (others, e.g. a final Simplify, may follow)
 diff(x^3+5x,x) :: Sum rule, Power rule
 diff(4x^5,x) :: Constant multiple rule, Power rule
-diff(x^3-x^2,x) :: Difference rule, Power rule, Power rule
+diff(x^3-x^2,x) :: Difference rule, Power rule, Power rule :: problem: diff((x^3-x^2), x) :: [Difference rule] :: diff((x^3), x)-diff((x^2), x)
 diff(7,x) :: Constant rule
 diff(3x+2,x) :: Linear function
 diff(t^4+t,t) :: Sum rule, Power rule
-diff(x^2*sin(3x),x) :: Product rule, Power rule, Chain rule
+diff(x^2*sin(3x),x) :: Product rule, Power rule, Chain rule :: problem: diff((x^2*sin(3*x)), x) :: [Product rule] f = `x^2`, g = `sin(3*x)` :: [Chain rule] outer `sin(u)`, inner `u = 3*x` :: [Power rule] :: 2*x*sin(3*x)+x^2*diff((sin(3*x)), x)
 diff(sin(x^2),x) :: Chain rule, Power rule
 diff(e^x/x,x) :: Quotient rule, Derivative of exp
 diff(5/x^2,x) :: Reciprocal rule, Power rule
@@ -21,9 +21,9 @@ diff(e^(3x)*ln(x),x) :: Product rule, Chain rule, Derivative of ln
 diff(x*e^x*sin(x),x) :: Product rule, Product rule, Derivative of exp, Derivative of sin
 diff(cot(x)+csc(x),x) :: Sum rule, Derivative of cot, Derivative of csc
 diff(acos(x)-log10(x),x) :: Difference rule, Derivative of acos, Derivative of log10
-diff(abs(x^2-4),x) :: Chain rule, Difference rule, Power rule
+diff(abs(x^2-4),x) :: Chain rule, Difference rule, Power rule :: inner `u = x^2-4`
 diff(3x^2,x,2) :: Constant multiple rule, Power rule, Simplify, Differentiate again, Linear function
-diff(sin(x),x,3) :: Derivative of sin, Differentiate again, Derivative of cos, Differentiate again, Constant multiple rule, Derivative of sin
+diff(sin(x),x,3) :: Derivative of sin, Differentiate again, Derivative of cos, Differentiate again, Constant multiple rule, Derivative of sin :: diff((-sin(x)), x)
 diff(t^2*sin(t),t) :: Product rule, Power rule, Derivative of sin
 diff(x*x*x*x*x*sin(x),x) :: Product rule
 diff(f(x),x) :: NONE

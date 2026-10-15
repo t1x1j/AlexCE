@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Checks hostgiac -k -S -p output against tests/host/steps_cases.txt.
 Usage: check_steps.py <cases> <output>. Each case: its labels must appear in order among the
-problem's [label] lines (a final [Simplify] may follow), or ':: NONE' expects '(no steps)'.
-'(stopped)' always fails. Exit 1 on any failure."""
+problem's [label] lines (a final [Simplify] may follow), or ':: NONE' expects '(no steps)'. An
+optional third field ('input :: labels :: text') is text that must appear in the problem's
+output (math in a choice line is printed between backquotes). '(stopped)' always fails. Exit 1
+on any failure."""
 import re, sys
 
 cases = []
@@ -10,8 +12,9 @@ for line in open(sys.argv[1], encoding='utf-8'):
     line = line.strip()
     if not line or line.startswith('#'):
         continue
-    inp, _, exp = line.partition(' :: ')
-    cases.append((inp.strip(), [e.strip() for e in exp.split(',') if e.strip()]))
+    parts = line.split(' :: ')
+    exp = parts[1] if len(parts) > 1 else ''
+    cases.append((parts[0].strip(), [e.strip() for e in exp.split(',') if e.strip()], parts[2:]))
 
 out = open(sys.argv[2], encoding='utf-8').read().split('\n')
 blocks, cur = {}, None
@@ -24,11 +27,14 @@ for l in out:
         blocks[cur].append(l)
 
 bad = 0
-for inp, exp in cases:
+for inp, exp, must in cases:
     b = blocks.get(inp)
     if b is None:
         print('MISSING', inp); bad += 1; continue
     text = '\n'.join(b)
+    missing = [m for m in must if m not in text]
+    if missing:
+        print('TEXT', inp, 'missing', missing, '\n' + text); bad += 1; continue
     if '(stopped)' in text:
         print('STOPPED', inp); bad += 1; continue
     if exp == ['NONE']:

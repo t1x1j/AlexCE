@@ -2362,6 +2362,15 @@ int Console_GetKey(){
       Console_Disp(1);
       continue;
     }
+#ifdef WITH_EQW
+    // Focus: 2nd F4 on a derivative's result shows its steps (main.cc); elsewhere its menu
+    if (focus_on && key==KEY_CTRL_F9 && focus_steps_key()){
+      const int o=focus_result_line();
+      console_show_steps(focus_input_line(o),o);
+      Console_Disp(1);
+      continue;
+    }
+#endif
     if (focus_on && (key==KEY_CTRL_F1 || key==KEY_CTRL_F2 || key==KEY_CTRL_F3 || key==KEY_CTRL_F5 || key==KEY_CTRL_SYMB
                      || (key==KEY_CTRL_F4 && focus_result_line()<0))){
       const char * text=0; int back=0;
@@ -3703,6 +3712,7 @@ const char * console_fkey_label(int layer,int k){
                       menu_f11,menu_f12,menu_f13,menu_f14,menu_f15}; // not static (see LOG: startup hang)
   if (layer==0 && k==3) return (Current_Line<Last_Line && Line[Current_Line].type==LINE_TYPE_OUTPUT)?"forms":"chartab";
   if (layer==0 && k==4) return lang?"Fichier":"File";
+  if (layer==1 && k==3 && focus_on && focus_steps_key()) return "steps";
   return t[(layer<0?0:layer>2?2:layer)*5+(k<0?0:k>4?4:k)];
 }
 // for focus.cc: the edit line is math (not Python); the caret in it (-1: the cursor is in the history)

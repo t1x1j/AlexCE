@@ -900,6 +900,19 @@ int focus_result_line() {
   return hm == HM_RESULT && NE ? E[NE - 1].out : -1;
 }
 static int forms_key() { return focus_result_line() >= 0; }
+int steps_applicable(const char * input); // steps.cc
+// the input line of the calculation whose result is history line out (-1: none)
+int focus_input_line(int out) {
+  scan();
+  if (!NE || out < 0) return -1;
+  int k = entry_of_line(out);
+  return k >= 0 && k < NE ? E[k].in : -1;
+}
+// 2nd F4 shows steps: the result F4 would cycle comes from a derivative
+int focus_steps_key() {
+  int o = focus_result_line(), i = o >= 0 ? focus_input_line(o) : -1;
+  return i >= 0 && steps_applicable((const char *)Line[i].str);
+}
 // History by calculations, as the prototype: the console line to select for dir 0 up, 1 down,
 // 2 left (the input), 3 right (the result); Last_Line for the edit line. Up and down keep the
 // part (input or result) that is selected.

@@ -18,6 +18,7 @@
 #include "main.h"
 #include "focus.h"
 #include "answer.h"
+#include "steps.h"
 #include <giac/kdisplay.h>
 #if !defined std
 #define std ustl
@@ -624,6 +625,30 @@ void console_cycle_form(int l){
     statuslinemsg(oom?"Out of memory":"");
   else
     statuslinemsg((std::string("form: ")+(form_idx?name:"original")+"    F4: next").c_str());
+}
+
+// 2nd F4 on a derivative's result: its worked steps (steps.cc) on the Steps screen
+// (focus_steps.cc). As for the forms: giac's notes are not shown, ON or a full memory stop it.
+void console_show_steps(int in,int out){
+  using namespace giac;
+  std::string problem;
+  std::vector<step> v;
+  statuslinemsg("computing...");
+  stdostream * savelog=logptr(contextptr);
+  logptr(0,contextptr);
+  dconsole_mode=0;
+  int r=steps_build((const char *)Line[in].str,std::string((const char *)Line[out].str),problem,v);
+  logptr(savelog,contextptr);
+  dconsole_mode=1;
+  const bool oom=oom_hit;
+  if (oom || ctrl_c || interrupted){
+    ctrl_c=interrupted=false;
+    v.clear();
+    r=STEPS_STOPPED;
+  }
+  oom_rearm();
+  statuslinemsg("");
+  focus_steps(problem,v,r,oom);
 }
 #endif
 

@@ -46,12 +46,68 @@ static gen add(const vecteur & v){
 }
 static gen prod(const vecteur & v){ return v.size()==1?v[0]:symbolic(at_prod,gen(v,_SEQ__VECT)); }
 static gen pw(const gen & a,const gen & n){ return is_one(n)?a:is_zero(n)?gen(1):sym2(at_pow,a,n); }
+// diff(u,x) as diff((u),x), drawn d/dx(u): d/dx x^2 sin(3x) reads as the derivative of the
+// product whether it is or not (d/dx(x^2) sin(3x) is not)
+static void paren_diff(string & s){
+  for (size_t p=s.find("diff(");p!=string::npos;p=s.find("diff(",p+5)){
+    const size_t a=p+5;
+    size_t i=a;
+    int depth=0;
+    bool wrapped=s[a]=='('; // already (u): stays wrapped while its parenthesis is open
+    for (;i<s.size();++i){
+      const char c=s[i];
+      if (c=='(') ++depth;
+      else if (c==')'){ if (!depth) break; --depth; }
+      else if (!depth && c==',') break;
+      else if (!depth && i>a) wrapped=false;
+    }
+    if (!wrapped && i<s.size() && s[i]==','){
+      s.insert(i,")");
+      s.insert(a,"(");
+    }
+  }
+}
+// a-b as a+(-b): giac prints an unevaluated a-b as (a)-(b)
+static gen plain_minus(const gen & g){
+  if (g.type!=_SYMB) return g;
+  const gen & f=g._SYMBptr->feuille;
+  gen n;
+  if (f.type==_VECT){
+    vecteur v=*f._VECTptr;
+    for (unsigned i=0;i<v.size();++i) v[i]=plain_minus(v[i]);
+    n=gen(v,f.subtype);
+  }
+  else n=plain_minus(f);
+  if (g._SYMBptr->sommet==at_binary_minus && n.type==_VECT && n._VECTptr->size()==2)
+    return sym2(at_plus,n._VECTptr->front(),sym1(at_neg,n._VECTptr->back()));
+  return symbolic(g._SYMBptr->sommet,n);
+}
+// -(diff(u,x)) as -diff(u,x): giac puts a negated call in parentheses
+static void unwrap_neg_diff(string & s){
+  for (size_t p=s.find("-(diff(");p!=string::npos;p=s.find("-(diff(",p+1)){
+    int depth=0;
+    size_t i=p+2;
+    for (;i<s.size();++i){
+      if (s[i]=='(') ++depth;
+      else if (s[i]==')' && !--depth) break; // the end of diff(...)
+    }
+    if (i+1<s.size() && s[i+1]==')'){
+      s.erase(i+1,1);
+      s.erase(p+1,1);
+    }
+  }
+}
 // g as FlowCE prints answers (the textbook notation of answer.cc)
 static string txt(const gen & g){
-  string s=g.print(contextptr);
+  string s=plain_minus(g).print(contextptr);
   textbook(s);
+  paren_diff(s);
+  unwrap_neg_diff(s);
   return s;
 }
+// math in a choice line, between \1 marks: the Steps screen draws it in 2D
+static string m(const string & s){ return "\x01"+s+"\x01"; }
+static string m(const gen & g){ return m(txt(g)); }
 
 static gen dnode(const gen & u,const gen & x){ return sym2(at_diff,u,x); }
 // d/dx u written directly when a reader sees it at once (0, 1, a of ax+b), else left as diff(u,x)
@@ -96,7 +152,7 @@ static bool rule(const gen & u,const gen & x,gen & r,string & label,string & cho
     const gen g=prod(vecteur(f.begin()+1,f.end())); // f[0] times the rest: (fg)'=f'g+fg'
     r=add(makevecteur(mul(D(f[0],x),g),mul(f[0],D(g,x))));
     label="Product rule";
-    choice="f = "+txt(f[0])+", g = "+txt(g);
+    choice="f = "+m(f[0])+", g = "+m(g);
     return true;
   }
   if (s==at_division){
@@ -109,26 +165,26 @@ static bool rule(const gen & u,const gen & x,gen & r,string & label,string & cho
     if (free_of(p,x)){ // (c/g)'=-c*g'/g^2
       r=neg(sym2(at_division,mul(p,D(q,x)),sym2(at_pow,q,2)));
       label="Reciprocal rule";
-      choice="g = "+txt(q);
+      choice="g = "+m(q);
       return true;
     }
     r=sym2(at_division,sym2(at_binary_minus,mul(D(p,x),q),mul(p,D(q,x))),sym2(at_pow,q,2));
     label="Quotient rule";
-    choice="f = "+txt(p)+", g = "+txt(q);
+    choice="f = "+m(p)+", g = "+m(q);
     return true;
   }
   if (s==at_pow){
     const gen & b=v[0], & e=v[1];
     if (free_of(e,x)){ // (u^n)'=n*u^(n-1)*u'
-      const gen m=eval(e-1,1,contextptr);
+      const gen e1=eval(e-1,1,contextptr);
       if (b==x){
-        r=mul(e,pw(x,m));
+        r=mul(e,pw(x,e1));
         label="Power rule";
         return true;
       }
-      r=mul(mul(e,pw(b,m)),D(b,x));
+      r=mul(mul(e,pw(b,e1)),D(b,x));
       label="Chain rule";
-      choice="outer u^"+txt(e)+", inner u = "+txt(b);
+      choice="outer "+m("u^"+txt(e))+", inner "+m("u = "+txt(b));
       return true;
     }
     if (free_of(b,x)){ // (a^u)'=a^u*ln(a)*u'
@@ -136,7 +192,7 @@ static bool rule(const gen & u,const gen & x,gen & r,string & label,string & cho
       if (e==x) label="Exponential rule";
       else {
         label="Chain rule";
-        choice="outer "+txt(b)+"^u, inner u = "+txt(e);
+        choice="outer "+m(txt(b)+"^u")+", inner "+m("u = "+txt(e));
       }
       return true;
     }
@@ -144,7 +200,7 @@ static bool rule(const gen & u,const gen & x,gen & r,string & label,string & cho
     const gen l=mul(e,sym1(at_ln,b));
     r=mul(u,D(l,x));
     label="Logarithmic differentiation";
-    choice="ln(y) = "+txt(l);
+    choice=m("ln(y) = "+txt(l));
     return true;
   }
   if (s==at_sqrt){ // (sqrt(u))'=u'/(2*sqrt(u))
@@ -153,7 +209,7 @@ static bool rule(const gen & u,const gen & x,gen & r,string & label,string & cho
     if (b==x) label="Square root rule";
     else {
       label="Chain rule";
-      choice="outer sqrt(u), inner u = "+txt(b);
+      choice="outer "+m("sqrt(u)")+", inner "+m("u = "+txt(b));
     }
     return true;
   }
@@ -179,7 +235,7 @@ static bool rule(const gen & u,const gen & x,gen & r,string & label,string & cho
   if (b==x) label="Derivative of "+name;
   else {
     label="Chain rule";
-    choice="outer "+name+"(u), inner u = "+txt(b);
+    choice="outer "+m(name+"(u)")+", inner "+m("u = "+txt(b));
   }
   return true;
 }

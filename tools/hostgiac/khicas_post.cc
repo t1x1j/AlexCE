@@ -121,7 +121,11 @@ std::string khicas_steps(const char * s){
   if (r==STEPS_STOPPED) out+="\n  (stopped)";
   for (size_t i=0;i<v.size();++i){
     out+="\n  ["+v[i].label+"]";
-    if (!v[i].choice.empty()) out+=" "+v[i].choice;
+    if (!v[i].choice.empty()){ // math between backquotes
+      std::string c=v[i].choice;
+      for (size_t j=0;j<c.size();++j) if (c[j]=='') c[j]='`';
+      out+=" "+c;
+    }
     out+=" :: "+v[i].expr;
   }
   ctrl_c=kbd_interrupted=interrupted=false;
