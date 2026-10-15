@@ -26,5 +26,8 @@ super=$(snapshot "$REPO")
 echo "[build] snapshot repo=${super:0:10} giac=${giac:0:10} variant=$VARIANT"
 
 WSLREPO="/mnt/$(echo "${REPO:1:1}" | tr 'A-Z' 'a-z')${REPO:2}"
-MSYS_NO_PATHCONV=1 wsl.exe -d Ubuntu-22.04 -- bash "$WSLREPO/tools/dev/wsl_build.sh" "$WSLREPO" "$VARIANT" "$super" "$giac" 2>&1 | tr -d '\0'
+# Overridable per machine: FLOWCE_WSL_DISTRO (the WSL distro) and KB (the build folder in WSL,
+# passed through WSLENV; wsl_build.sh has the default).
+[ -n "${KB:-}" ] && export KB WSLENV="KB${WSLENV:+:$WSLENV}"
+MSYS_NO_PATHCONV=1 wsl.exe -d "${FLOWCE_WSL_DISTRO:-Ubuntu-22.04}" -- bash "$WSLREPO/tools/dev/wsl_build.sh" "$WSLREPO" "$VARIANT" "$super" "$giac" 2>&1 | tr -d '\0'
 exit "${PIPESTATUS[0]}"
