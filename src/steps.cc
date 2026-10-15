@@ -322,6 +322,68 @@ static gen table_int(const gen & f,const gen & v,string & label){
   return 0;
 }
 
+static int itrace(gen & E,const gen & f,const gen & v,vector<step> & out); // (below)
+// the u candidates of f: its functions' arguments, its powers' bases (and exponents over a
+// constant base), its denominators, outermost first
+static void candidates(const gen & f,const gen & v,vecteur & c){
+  if (f.type!=_SYMB) return;
+  const unary_function_ptr & s=f._SYMBptr->sommet;
+  const vecteur a=args(f);
+  gen b;
+  if (s==at_pow && a.size()==2) b=free_of(a[1],v)?a[0]:free_of(a[0],v)?a[1]:gen(0);
+  else if (s==at_division) b=a[1];
+  else if (a.size()==1 && s!=at_neg) b=a[0];
+  if (!is_zero(b) && !(b==v) && !free_of(b,v) && !equalposcomp(c,b)) c.push_back(b);
+  for (unsigned i=0;i<a.size();++i) candidates(a[i],v,c);
+}
+// the name of the new variable: u, else w, t, s (not in f, no stored value)
+static gen free_var(const gen & f){
+  static const char * const n[]={"u","w","t","s"};
+  for (int i=0;i<4;++i){
+    const gen u(n[i],contextptr);
+    if (u.type==_IDNT && !contains(f,u) && eval(u,1,contextptr)==u) return u;
+  }
+  return 0;
+}
+static int usub_depth; // u-substitutions inside one another (at most 2)
+// u-substitution: f = G(b)*b' for a candidate b; the integral of G(u) in u traced on its own
+// (its steps in pre, after the substitution step), then u = b put back
+static bool usub(const gen & f,const gen & v,gen & r,string & label,string & choice,vector<step> & pre){
+  if (usub_depth>=2) return false;
+  vecteur c;
+  candidates(f,v,c);
+  const gen u=free_var(f);
+  if (is_zero(u)) return false;
+  for (unsigned i=0;i<c.size();++i){
+    const gen & b=c[i];
+    const gen db=normal(derive(eval(b,1,contextptr),v,contextptr),contextptr);
+    if (is_zero(db) || interrupted) continue;
+    // b replaced by u before simplifying: what is left of v must cancel (x/(x^2+1) over 2x: 1/(2u));
+    // evaluated (normal leaves an unevaluated 2x*cos(u)/(2x) as is), then parsed again from its
+    // text (evaluated, 1/u is inv(u): the rules know the typed forms)
+    const gen G0=normal(eval(quotesubst(sym2(at_division,f,db),b,u,contextptr),1,contextptr),contextptr);
+    if (!free_of(G0,v) || interrupted) continue;
+    const gen G(G0.print(contextptr),contextptr);
+    const size_t n0=pre.size();
+    step s={"u-substitution","Let "+m(txt(u)+" = "+txt(b))+", "+m(txt(dvar(u))+" = "+txt(mul(db,dvar(v)))),txt(inode(G,u))};
+    pre.push_back(s);
+    gen Eu=inode(G,u);
+    ++usub_depth;
+    const int k=itrace(Eu,G,u,pre);
+    --usub_depth;
+    if (k!=STEPS_OK){
+      pre.resize(n0);
+      if (interrupted) return false;
+      continue;
+    }
+    r=quotesubst(Eu,u,b,contextptr);
+    label="Substitute back";
+    choice=m(txt(u)+" = "+txt(b));
+    return true;
+  }
+  return false;
+}
+
 // one rule applied to the integral of f in v: its result r (with integrate nodes left for the
 // rest), the rule's name, what was chosen, and steps to show before this one (pre: a
 // u-substitution's integral in u); false: no rule
@@ -390,7 +452,8 @@ static bool irule(const gen & f,const gen & v,gen & r,string & label,string & ch
     return true;
   }
   r=table_int(f,v,label);
-  return !is_zero(r);
+  if (!is_zero(r)) return true;
+  return usub(f,v,r,label,choice,pre);
 }
 
 // the first integrate(.,v) node of E (leftmost, outermost) replaced by its rule: 1 done, 0 no node
@@ -473,6 +536,7 @@ int steps_applicable(const char * s){
 
 int steps_build(const char * input,const string & answer,string & problem,vector<step> & out){
   out.clear();
+  usub_depth=0;
   problem.clear();
   const int S=strlen(input),cap=2*S+32>256?2*S+32:256;
   char * buf=(char *)malloc(cap);

@@ -51,6 +51,14 @@ integrate(1/(1+x^2),x) :: Integral of 1/(1+x^2)
 integrate(x^2,x,0,3) :: Power rule, Evaluate at the bounds
 integrate(e^(x^2),x) :: NONE
 integrate(sqrt(1+x^3),x,0,1) :: NONE
+integrate(cos(3x),x) :: u-substitution, Constant multiple rule, Integral of cos, Substitute back
+integrate(2x*cos(x^2),x) :: u-substitution, Integral of cos, Substitute back :: Let `u = x^2`
+integrate(x/(x^2+1),x) :: u-substitution, Constant multiple rule, Log rule, Substitute back
+integrate((2x+3)/(x^2+3x+1),x) :: u-substitution, Log rule, Substitute back
+integrate(x*e^(x^2),x) :: u-substitution, Integral of exp, Substitute back
+integrate((x^2+1)^5*x,x) :: u-substitution, Power rule, Substitute back
+integrate(sin(x)*cos(x)^2,x) :: u-substitution, Power rule, Substitute back
+integrate(u*cos(u^2),u) :: u-substitution, Integral of cos, Substitute back :: Let `w = u^2`
 # a stored variable: the problem shows its name, so steps on it would mislead (purged after)
 y:=3x+1 :: NONE
 diff(y,x,2) :: NONE
