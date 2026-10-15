@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Checks hostgiac -k -S -p output against tests/host/steps_cases.txt.
 Usage: check_steps.py <cases> <output>. Each case: its labels must appear in order among the
-problem's [label] lines (a final [Simplify] may follow), or ':: NONE' expects '(no steps)'. An
+problem's [label] lines (a final [Simplify] may follow); '=labels' expects exactly those labels
+(a final Simplify or Add the constant aside); ':: NONE' expects '(no steps)'. An
 optional third field ('input :: labels :: text') is text that must appear in the problem's
 output (math in a choice line is printed between backquotes). '(stopped)' always fails. Exit 1
 on any failure."""
@@ -44,6 +45,12 @@ for inp, exp, must in cases:
     if '(no steps)' in text:
         print('NO STEPS', inp, '\n' + text); bad += 1; continue
     labels = re.findall(r'^  \[([^\]]+)\]', text, re.M)
+    if exp and exp[0].startswith('='):  # '=labels': exactly these (the final Simplify/Add the constant aside)
+        exp = [exp[0][1:]] + exp[1:]
+        got = [l for l in labels if l not in ('Simplify', 'Add the constant')]
+        if got != exp:
+            print('EXACT', inp, 'expected', exp, 'got', labels); bad += 1
+        continue
     i = 0
     for lab in labels:
         if i < len(exp) and lab == exp[i]:

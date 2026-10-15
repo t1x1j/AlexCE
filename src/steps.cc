@@ -305,18 +305,42 @@ static const char * const TABLE[]={
   "sec*tan","sec(x)*tan(x)","sec(x)", "sec*tan","tan(x)*sec(x)","sec(x)",
   "csc*cot","csc(x)*cot(x)","-csc(x)", "csc*cot","cot(x)*csc(x)","-csc(x)",
   "1/(1+x^2)","1/(1+x^2)","atan(x)", "1/sqrt(1-x^2)","1/sqrt(1-x^2)","asin(x)", 0};
-static gen table_int(const gen & f,const gen & v,string & label){
+// a of w = a*v+b (w linear in v, not v itself); 0 otherwise
+static gen lin_coef(const gen & w,const gen & v){
+  if (w==v || free_of(w,v)) return 0;
+  const gen a=normal(derive(eval(w,1,contextptr),v,contextptr),contextptr);
+  return free_of(a,v)?a:gen(0);
+}
+// the argument of f's first table function (exp, sin, cos, tan, cot, sec, csc), 0 if none
+static gen inner(const gen & f){
+  if (f.type!=_SYMB) return 0;
+  const unary_function_ptr & s=f._SYMBptr->sommet;
+  if (s==at_exp || s==at_sin || s==at_cos || s==at_tan || s==at_cot || s==at_sec || s==at_csc) return f._SYMBptr->feuille;
+  const vecteur a=args(f);
+  for (unsigned i=0;i<a.size();++i){ const gen w=inner(a[i]); if (!is_zero(w)) return w; }
+  return 0;
+}
+// f in the table, of v or of a linear w = a*v+b (the result over a: cos(3x) gives sin(3x)/3)
+static gen table_int(const gen & f,const gen & v,string & label,string & choice){
   if (f.type!=_SYMB) return 0;
   if (is_op(f,at_pow) && args(f)[1]==v && free_of(args(f)[0],v)){ // a^v/ln(a)
     label="Exponential rule";
     return sym2(at_division,f,sym1(at_ln,args(f)[0]));
   }
-  const gen x("x",contextptr);
-  for (int k=0;TABLE[k];k+=3){
-    const gen p=quotesubst(gen(TABLE[k+1],contextptr),x,v,contextptr);
-    if (f==p || (TABLE[k][0]=='1' && is_op(f,at_division) && equal(f,p))){
-      label=string("Integral of ")+TABLE[k];
-      return quotesubst(gen(TABLE[k+2],contextptr),x,v,contextptr);
+  const gen x("x",contextptr),w0=inner(f),a=is_zero(w0)?gen(0):lin_coef(w0,v);
+  for (int pass=0;pass<2;++pass){
+    if (pass && is_zero(a)) break;
+    const gen w=pass?w0:v;
+    for (int k=0;TABLE[k];k+=3){
+      if (pass && TABLE[k][0]=='1') continue; // (1/(1+x^2), 1/sqrt(1-x^2): the argument v only)
+      const gen p=quotesubst(gen(TABLE[k+1],contextptr),x,w,contextptr);
+      if (f==p || (TABLE[k][0]=='1' && is_op(f,at_division) && equal(f,p))){
+        label=string("Integral of ")+TABLE[k];
+        const gen r=quotesubst(gen(TABLE[k+2],contextptr),x,w,contextptr);
+        if (!pass) return r;
+        choice=m("u = "+txt(w))+": divide by "+m(txt(a));
+        return is_one(a)?r:sym2(at_division,r,den(a));
+      }
     }
   }
   return 0;
@@ -482,7 +506,35 @@ static __attribute__((noinline)) bool irule(const gen & f,const gen & v,gen & r,
         return true;
       }
     }
-    if (free_of(p,v)){ // c/v, c/v^n, c/sqrt(v)
+    if (free_of(p,v)){
+      // c/(ax+b), c/(ax+b)^n: ln|ax+b|/a, (ax+b)^(1-n)/((1-n)a)
+      gen base=q,nb=1;
+      if (is_op(q,at_pow) && free_of(args(q)[1],v)){ base=args(q)[0]; nb=args(q)[1]; }
+      const gen c=lin_coef(base,v);
+      if (!is_zero(c)){
+        choice=m("u = "+txt(base));
+        if (is_one(nb)){ r=sym2(at_division,mul(p,sym1(at_ln,sym1(at_abs,base))),den(c)); label="Log rule"; return true; }
+        const gen e=eval(1-nb,1,contextptr);
+        r=sym2(at_division,mul(p,pw(base,e)),den(eval(e*c,1,contextptr)));
+        label="Power rule";
+        return true;
+      }
+      // c/(w^2+k), k > 0, w linear: atan(w/sqrt(k))/(a*sqrt(k))
+      if (is_op(q,at_plus) && args(q).size()==2){
+        const vecteur t=args(q);
+        for (int i=0;i<2;++i){
+          const gen & sq=t[i], & k=t[1-i];
+          if (!is_op(sq,at_pow) || !(args(sq)[1]==2) || !free_of(k,v) || !is_strictly_positive(k,contextptr)) continue;
+          const gen w=args(sq)[0],c2=w==v?gen(1):lin_coef(w,v);
+          if (is_zero(c2) || (w==v && is_one(k))) continue; // (1/(1+x^2): the table)
+          const gen sk=eval(sym1(at_sqrt,k),1,contextptr),c=eval(p/(c2*sk),1,contextptr),at=sym1(at_atan,sym2(at_division,w,sk));
+          r=c.type==_FRAC?sym2(at_division,mul(c._FRACptr->num,at),c._FRACptr->den):mul(c,at);
+          label="Integral of 1/(u^2+a^2)";
+          choice=m("a = "+txt(sk));
+          return true;
+        }
+      }
+      // c/v, c/v^n, c/sqrt(v)
       gen n;
       if (q==v) n=1;
       else if (is_op(q,at_pow) && args(q)[0]==v && free_of(args(q)[1],v)) n=args(q)[1];
@@ -504,13 +556,32 @@ static __attribute__((noinline)) bool irule(const gen & f,const gen & v,gen & r,
     label="Power rule";
     return true;
   }
+  if (s==at_pow && free_of(a[1],v)){ // (ax+b)^n: (ax+b)^(n+1)/((n+1)a)
+    const gen c=lin_coef(a[0],v),e1=eval(a[1]+1,1,contextptr);
+    if (!is_zero(c) && !is_zero(e1)){
+      r=sym2(at_division,pw(a[0],e1),den(eval(e1*c,1,contextptr)));
+      label="Power rule";
+      choice=m("u = "+txt(a[0]));
+      return true;
+    }
+  }
   if (s==at_sqrt && a[0]==v){
     r=sym2(at_division,sym2(at_pow,v,fraction(3,2)),den(fraction(3,2)));
     label="Power rule";
     choice=m(txt(f)+" = "+txt(v)+"^(1/2)"); // (printed, v^(1/2) is sqrt(v) again)
     return true;
   }
-  r=table_int(f,v,label);
+  // a product or integer power of sums that is a polynomial of degree 4 at most: expanded, then
+  // term by term (higher, (x^2+1)^5*x: a u-substitution)
+  if ((s==at_prod || (s==at_pow && a[1].type==_INT_ && a[1].val>=2)) && (contains(f,at_plus) || contains(f,at_binary_minus)) && poly_v(f,v)){
+    const gen d=_degree(makesequence(eval(f,1,contextptr),v),contextptr);
+    if (d.type==_INT_ && d.val<=4){
+    r=inode(gen(normal(eval(f,1,contextptr),contextptr).print(contextptr),contextptr),v);
+    label="Expand";
+    return true;
+    }
+  }
+  r=table_int(f,v,label,choice);
   if (!is_zero(r)) return true;
   return usub(f,v,r,label,choice,pre) || parts(f,v,r,label,choice);
 }

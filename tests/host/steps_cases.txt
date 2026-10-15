@@ -51,13 +51,21 @@ integrate(1/(1+x^2),x) :: Integral of 1/(1+x^2)
 integrate(x^2,x,0,3) :: Power rule, Evaluate at the bounds
 integrate(e^(x^2),x) :: NONE
 integrate(sqrt(1+x^3),x,0,1) :: NONE
-integrate(cos(3x),x) :: u-substitution, Constant multiple rule, Integral of cos, Substitute back
+integrate(cos(3x),x) :: =Integral of cos :: `u = 3*x`: divide by `3`
 integrate(2x*cos(x^2),x) :: u-substitution, Integral of cos, Substitute back :: Let `u = x^2`
 integrate(x/(x^2+1),x) :: u-substitution, Constant multiple rule, Log rule, Substitute back
 integrate((2x+3)/(x^2+3x+1),x) :: u-substitution, Log rule, Substitute back
 integrate(x*e^(x^2),x) :: u-substitution, Integral of exp, Substitute back
 integrate((x^2+1)^5*x,x) :: u-substitution, Power rule, Substitute back
 integrate(sin(x)*cos(x)^2,x) :: u-substitution, Power rule, Substitute back
+integrate(e^(2x+1),x) :: =Integral of exp
+integrate(1/(2x+5),x) :: =Log rule
+integrate((3x-1)^4,x) :: =Power rule
+integrate(1/(x+1)^2,x) :: =Power rule
+integrate(1/(x^2+4),x) :: Integral of 1/(u^2+a^2)
+integrate(3/((x+2)^2+9),x) :: Integral of 1/(u^2+a^2)
+integrate((x+1)*(x-2),x) :: Expand, Difference rule
+integrate((1-x^2)^2,x) :: Expand
 integrate(u*cos(u^2),u) :: u-substitution, Integral of cos, Substitute back :: Let `w = u^2`
 integrate(x*e^x,x) :: Integration by parts, Integral of exp :: u = x
 integrate(x^2*e^x,x) :: Integration by parts, Integration by parts, Integral of exp
