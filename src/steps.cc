@@ -273,9 +273,216 @@ static bool equal(const gen & a,const gen & b){
 // g (its diff nodes evaluated) equals the derivative d
 static bool same(const gen & g,const gen & d){ return equal(eval(g,1,contextptr),d); }
 
+// ---------------------------------------------------------------- integrals
+// As for derivatives: the problem's unevaluated integrate(f,v) nodes are expanded one rule at a
+// time, leftmost first. A step is checked by differentiating it (a node differentiates to its
+// integrand): the derivative must be the integrand. A u-substitution traces the integral in u on
+// its own, checked in u, before the substitution back (usub).
+static gen inode(const gen & f,const gen & v){ return sym2(at_integrate,f,v); }
+// a power rule's denominator as written on paper: x^(3/2)/(3/2), x^(-1)/(-1) (giac prints a
+// fraction or a negative number below a bar bare: x^(3/2)/3/2)
+static gen den(const gen & e){
+  if (e.type==_FRAC) return sym2(at_division,e._FRACptr->num,e._FRACptr->den);
+  if (is_strictly_positive(-e,contextptr)) return sym1(at_neg,-e);
+  return e;
+}
+// dx, du: the differential of v, for the choice lines
+static gen dvar(const gen & v){ return gen("d"+v.print(contextptr),contextptr); }
+// E (its integrate nodes unevaluated) is an antiderivative of f in v (derive does not know a
+// parsed a-b: plain_minus first; with no node left the derivative can be evaluated)
+static bool anti(const gen & E,const gen & f,const gen & v){
+  return equal(eval(derive(plain_minus(E),v,contextptr),1,contextptr),eval(f,1,contextptr));
+}
+
+// the textbook table for an argument that is v itself; 0 if f is not in it
+static gen table_int(const gen & f,const gen & v,string & label){
+  if (f.type!=_SYMB) return 0;
+  const unary_function_ptr & s=f._SYMBptr->sommet;
+  const vecteur a=args(f);
+  gen r;
+  if (a.size()==1 && a[0]==v){
+    if (s==at_exp) r=f;
+    else if (s==at_sin) r=neg(sym1(at_cos,v));
+    else if (s==at_cos) r=sym1(at_sin,v);
+    else if (s==at_tan) r=neg(sym1(at_ln,sym1(at_abs,sym1(at_cos,v))));
+    else if (s==at_cot) r=sym1(at_ln,sym1(at_abs,sym1(at_sin,v)));
+    else if (s==at_sec) r=sym1(at_ln,sym1(at_abs,sym2(at_plus,sym1(at_sec,v),sym1(at_tan,v))));
+    else if (s==at_csc) r=neg(sym1(at_ln,sym1(at_abs,sym2(at_plus,sym1(at_csc,v),sym1(at_cot,v)))));
+    if (!is_zero(r)){ label=string("Integral of ")+s.ptr()->s; return r; }
+  }
+  if (s==at_pow && a.size()==2){
+    if (a[1]==v && free_of(a[0],v)){ // a^v/ln(a)
+      label="Exponential rule";
+      return sym2(at_division,f,sym1(at_ln,a[0]));
+    }
+    if (a[1]==2 && (is_op(a[0],at_sec) || is_op(a[0],at_csc)) && args(a[0])[0]==v){
+      const bool sec=is_op(a[0],at_sec);
+      label=sec?"Integral of sec^2":"Integral of csc^2";
+      return sec?sym1(at_tan,v):neg(sym1(at_cot,v));
+    }
+  }
+  if (s==at_prod && a.size()==2){ // sec(v)*tan(v), csc(v)*cot(v)
+    for (int k=0;k<2;++k){
+      const gen & p=a[k], & q=a[1-k];
+      if (is_op(p,at_sec) && is_op(q,at_tan) && args(p)[0]==v && args(q)[0]==v){ label="Integral of sec*tan"; return sym1(at_sec,v); }
+      if (is_op(p,at_csc) && is_op(q,at_cot) && args(p)[0]==v && args(q)[0]==v){ label="Integral of csc*cot"; return neg(sym1(at_csc,v)); }
+    }
+  }
+  if ((s==at_division || s==at_pow) && !contains(f,at_sin) && !contains(f,at_cos) && !contains(f,at_exp) && !contains(f,at_ln)){
+    const gen v2=sym2(at_pow,v,2);
+    if (equal(f,sym2(at_division,1,sym2(at_plus,1,v2)))){ label="Integral of 1/(1+x^2)"; return sym1(at_atan,v); }
+    if (equal(f,sym2(at_division,1,sym1(at_sqrt,sym2(at_binary_minus,1,v2))))){ label="Integral of 1/sqrt(1-x^2)"; return sym1(at_asin,v); }
+  }
+  return 0;
+}
+
+// one rule applied to the integral of f in v: its result r (with integrate nodes left for the
+// rest), the rule's name, what was chosen, and steps to show before this one (pre: a
+// u-substitution's integral in u); false: no rule
+static bool irule(const gen & f,const gen & v,gen & r,string & label,string & choice,vector<step> & pre){
+  choice.clear();
+  if (free_of(f,v)){ r=mul(f,v); label="Constant rule"; return true; }
+  if (f==v){ r=sym2(at_division,sym2(at_pow,v,2),2); label="Power rule"; return true; }
+  if (f.type!=_SYMB) return false;
+  const unary_function_ptr & s=f._SYMBptr->sommet;
+  const vecteur a=args(f);
+  if (s==at_plus || s==at_binary_minus){
+    vecteur t;
+    for (unsigned i=0;i<a.size();++i)
+      t.push_back(s==at_binary_minus && i?neg(inode(a[i],v)):inode(a[i],v));
+    r=add(t);
+    label=s==at_binary_minus?"Difference rule":"Sum rule";
+    return true;
+  }
+  if (s==at_neg){ r=neg(inode(a[0],v)); label="Constant multiple rule"; return true; }
+  if (s==at_prod){
+    vecteur c,g;
+    for (unsigned i=0;i<a.size();++i)
+      (free_of(a[i],v)?c:g).push_back(a[i]);
+    if (!c.empty() && !g.empty()){ r=mul(prod(c),inode(prod(g),v)); label="Constant multiple rule"; return true; }
+  }
+  if (s==at_division){
+    const gen & p=a[0], & q=a[1];
+    if (free_of(q,v)){ r=sym2(at_division,inode(p,v),q); label="Constant multiple rule"; return true; }
+    if (is_op(q,at_prod)){ // 1/(2u): the constant factors out
+      vecteur c,g;
+      const vecteur qa=args(q);
+      for (unsigned i=0;i<qa.size();++i)
+        (free_of(qa[i],v)?c:g).push_back(qa[i]);
+      if (!c.empty() && !g.empty()){
+        r=sym2(at_division,inode(sym2(at_division,p,prod(g)),v),prod(c));
+        label="Constant multiple rule";
+        return true;
+      }
+    }
+    if (free_of(p,v)){ // c/v, c/v^n, c/sqrt(v)
+      gen n;
+      if (q==v) n=1;
+      else if (is_op(q,at_pow) && args(q)[0]==v && free_of(args(q)[1],v)) n=args(q)[1];
+      else if (is_op(q,at_sqrt) && args(q)[0]==v) n=fraction(1,2);
+      if (is_one(n)){ r=mul(p,sym1(at_ln,sym1(at_abs,v))); label="Log rule"; return true; }
+      if (!is_zero(n)){
+        const gen e=eval(-n,1,contextptr);
+        r=mul(p,inode(sym2(at_pow,v,e),v));
+        label="Rewrite as a power";
+        choice=m(txt(sym2(at_division,1,q))+" = "+txt(sym2(at_pow,v,e)));
+        return true;
+      }
+    }
+  }
+  if (s==at_pow && a[0]==v && free_of(a[1],v)){
+    const gen e1=eval(a[1]+1,1,contextptr);
+    if (is_zero(e1)){ r=sym1(at_ln,sym1(at_abs,v)); label="Log rule"; return true; }
+    r=sym2(at_division,pw(v,e1),den(e1));
+    label="Power rule";
+    return true;
+  }
+  if (s==at_sqrt && a[0]==v){
+    r=sym2(at_division,sym2(at_pow,v,fraction(3,2)),den(fraction(3,2)));
+    label="Power rule";
+    choice=m(txt(f)+" = "+txt(v)+"^(1/2)"); // (printed, v^(1/2) is sqrt(v) again)
+    return true;
+  }
+  r=table_int(f,v,label);
+  return !is_zero(r);
+}
+
+// the first integrate(.,v) node of E (leftmost, outermost) replaced by its rule: 1 done, 0 no node
+// in v left, -1 a node no rule explains
+static int iexpand(gen & E,const gen & v,string & label,string & choice,vector<step> & pre){
+  if (E.type!=_SYMB) return 0;
+  if (E._SYMBptr->sommet==at_integrate){
+    const vecteur a=args(E);
+    if (a.size()!=2 || !(a[1]==v)) return 0;
+    gen r;
+    if (!irule(a[0],v,r,label,choice,pre)) return -1;
+    E=r;
+    return 1;
+  }
+  vecteur w=args(E);
+  for (unsigned i=0;i<w.size();++i){
+    const int k=iexpand(w[i],v,label,choice,pre);
+    if (!k) continue;
+    if (k>0){
+      const gen & f=E._SYMBptr->feuille;
+      E=symbolic(E._SYMBptr->sommet,f.type==_VECT?gen(w,f.subtype):w[0]);
+    }
+    return k;
+  }
+  return 0;
+}
+
+// the steps of E (integrate nodes in v), an integral of f, into out until no node is left
+static int itrace(gen & E,const gen & f,const gen & v,vector<step> & out){
+  for (;;){
+    string label,choice;
+    vector<step> pre;
+    const int r=iexpand(E,v,label,choice,pre);
+    if (interrupted) return STEPS_STOPPED;
+    if (!r) return STEPS_OK;
+    if (r<0 || out.size()+pre.size()>=STEPS_MAX || !anti(E,f,v))
+      return interrupted?STEPS_STOPPED:STEPS_NONE;
+    for (unsigned i=0;i<pre.size();++i) out.push_back(pre[i]);
+    step s={label,choice,txt(E)};
+    out.push_back(s);
+  }
+}
+
+// integrate(f,x) or integrate(f,x,a,b) (in, parsed): its steps, the last being FlowCE's answer
+// (+ C for an antiderivative)
+static int build_integral(const gen & in,const string & answer,string & problem,vector<step> & out){
+  const vecteur a=args(in);
+  if ((a.size()!=2 && a.size()!=4) || a[1].type!=_IDNT) return STEPS_NONE;
+  const gen & f=a[0], & x=a[1];
+  problem=txt(in);
+  gen E=inode(f,x);
+  const int r=itrace(E,f,x,out);
+  if (r!=STEPS_OK){ out.clear(); return r; }
+  const gen F=eval(E,1,contextptr),A=eval(gen(answer,contextptr),1,contextptr);
+  if (interrupted){ out.clear(); return STEPS_STOPPED; }
+  if (a.size()==2){ // FlowCE's antiderivative too (they differ by a constant)
+    if (!anti(A,f,x)){ out.clear(); return interrupted?STEPS_STOPPED:STEPS_NONE; }
+    step s={out.empty() || out.back().expr!=answer?"Simplify":"Add the constant","",answer+"+C"};
+    out.push_back(s);
+    return STEPS_OK;
+  }
+  // F(b)-F(a), substituted as written, then the value
+  const gen V=sym2(at_plus,quotesubst(F,x,a[3],contextptr),neg(quotesubst(F,x,a[2],contextptr)));
+  const gen d=eval(V,1,contextptr)-A,de=evalf(d,1,contextptr);
+  if (interrupted || !(is_zero(ratnormal(d,contextptr)) || (de.type==_DOUBLE_ && std::abs(de._DOUBLE_val)<1e-6*(1+std::abs(evalf(A,1,contextptr)._DOUBLE_val))))){
+    out.clear();
+    return interrupted?STEPS_STOPPED:STEPS_NONE;
+  }
+  step s={"Evaluate at the bounds","from "+m(a[2])+" to "+m(a[3]),txt(V)};
+  out.push_back(s);
+  step t={"Simplify","",answer};
+  out.push_back(t);
+  return STEPS_OK;
+}
+
 int steps_applicable(const char * s){
   while (*s==' ') ++s;
-  return !strncmp(s,"diff(",5);
+  return !strncmp(s,"diff(",5) || !strncmp(s,"integrate(",10);
 }
 
 int steps_build(const char * input,const string & answer,string & problem,vector<step> & out){
@@ -288,6 +495,14 @@ int steps_build(const char * input,const string & answer,string & problem,vector
   answer_prepass(buf,cap,true); // as do_run: 2x is 2*x, Focus's log is log10
   const gen in(buf,contextptr);
   free(buf);
+  if (is_op(in,at_integrate)){
+    const vecteur a=args(in);
+    if (a.size()<2 || a[1].type!=_IDNT) return STEPS_NONE;
+    const vecteur ids=lidnt(a[0]);
+    for (unsigned i=0;i<ids.size();++i)
+      if (ids[i]!=a[1] && contains(eval(ids[i],1,contextptr),a[1])) return STEPS_NONE;
+    return build_integral(in,answer,problem,out);
+  }
   if (!is_op(in,at_diff)) return STEPS_NONE;
   const vecteur a=args(in);
   if (a.size()<2 || a.size()>3 || a[1].type!=_IDNT) return STEPS_NONE;

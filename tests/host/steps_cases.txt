@@ -37,8 +37,23 @@ diff(e*x^2,x) :: Constant multiple rule, Power rule
 diff(pi*sin(x),x) :: Constant multiple rule, Derivative of sin
 diff(x^2*e^(3x)/sin(x),x) :: Quotient rule, Product rule, Power rule, Chain rule, Derivative of sin
 diff((x^2+1)*sin(x)-x*cos(x),x) :: Difference rule, Product rule, Product rule
+# integrals (part 2a, task 1)
+integrate(3x^2+2x+1,x) :: Sum rule, Constant multiple rule, Power rule, Constant rule
+integrate(x^-2,x) :: Power rule :: /(-1)
+integrate(1/x,x) :: Log rule
+integrate(sqrt(x),x) :: Power rule :: `sqrt(x) = x^(1/2)` :: x^(3/2)/(3/2)
+integrate(5/x^3,x) :: Rewrite as a power, Power rule
+integrate(cos(x),x) :: Integral of cos
+integrate(e^x,x) :: Integral of exp
+integrate(sec(x)^2,x) :: Integral of sec^2
+integrate(2^x,x) :: Exponential rule
+integrate(1/(1+x^2),x) :: Integral of 1/(1+x^2)
+integrate(x^2,x,0,3) :: Power rule, Evaluate at the bounds
+integrate(e^(x^2),x) :: NONE
+integrate(sqrt(1+x^3),x,0,1) :: NONE
 # a stored variable: the problem shows its name, so steps on it would mislead (purged after)
 y:=3x+1 :: NONE
 diff(y,x,2) :: NONE
 diff(x*y,x) :: NONE
+integrate(y,x) :: NONE
 purge(y) :: NONE
