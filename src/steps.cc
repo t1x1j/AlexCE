@@ -106,7 +106,7 @@ static void unwrap_neg_diff(string & s){
 // constants put together for reading: a/b/c as a/(b*c), 1/q*(a/b) as a/(q*b) (multiplied out
 // when both are numbers)
 static gen tmul(const gen & a,const gen & b){ return a.type==_INT_ && b.type==_INT_?a*b:sym2(at_prod,a,b); }
-static gen tidy(const gen & g){
+static __attribute__((noinline)) gen tidy(const gen & g){
   if (g.type!=_SYMB) return g;
   const gen & f=g._SYMBptr->feuille;
   gen n;
@@ -133,7 +133,7 @@ static gen tidy(const gen & g){
   return symbolic(s,n);
 }
 // g as FlowCE prints answers (the textbook notation of answer.cc)
-static string txt(const gen & g){
+static __attribute__((noinline)) string txt(const gen & g){
   string s=plain_minus(tidy(g)).print(contextptr);
   textbook(s);
   paren_arg(s,"diff(",false);
@@ -157,6 +157,11 @@ static gen D(const gen & u,const gen & x){
 
 // one rule applied to d/dx u: its result r, the rule's name and what was chosen; false: no rule
 static string uname(const gen & f); // (below)
+// a chain rule's choice: outer pre U post, inner U = b (U: u, or w when the variable is u)
+static __attribute__((noinline)) string chain(const string & pre,const string & post,const gen & b,const gen & u){
+  const string U=uname(u);
+  return "outer "+m(pre+U+post)+", inner "+m(U+" = "+txt(b));
+}
 static bool rule(const gen & u,const gen & x,gen & r,string & label,string & choice){
   choice.clear();
   if (u.type!=_SYMB) return false;
@@ -221,7 +226,7 @@ static bool rule(const gen & u,const gen & x,gen & r,string & label,string & cho
       }
       r=mul(mul(e,pw(b,e1)),D(b,x));
       label="Chain rule";
-      choice="outer "+m(uname(u)+"^"+txt(e))+", inner "+m(uname(u)+" = "+txt(b));
+      choice=chain("","^"+txt(e),b,u);
       return true;
     }
     if (free_of(b,x)){ // (a^u)'=a^u*ln(a)*u'
@@ -229,7 +234,7 @@ static bool rule(const gen & u,const gen & x,gen & r,string & label,string & cho
       if (e==x) label="Exponential rule";
       else {
         label="Chain rule";
-        choice="outer "+m(txt(b)+"^"+uname(u))+", inner "+m(uname(u)+" = "+txt(e));
+        choice=chain(txt(b)+"^","",e,u);
       }
       return true;
     }
@@ -246,7 +251,7 @@ static bool rule(const gen & u,const gen & x,gen & r,string & label,string & cho
     if (b==x) label="Square root rule";
     else {
       label="Chain rule";
-      choice="outer "+m("sqrt("+uname(u)+")")+", inner "+m(uname(u)+" = "+txt(b));
+      choice=chain("sqrt(",")",b,u);
     }
     return true;
   }
@@ -272,7 +277,7 @@ static bool rule(const gen & u,const gen & x,gen & r,string & label,string & cho
   if (b==x) label="Derivative of "+name;
   else {
     label="Chain rule";
-    choice="outer "+m(name+"("+uname(u)+")")+", inner "+m(uname(u)+" = "+txt(b));
+    choice=chain(name+"(",")",b,u);
   }
   return true;
 }
