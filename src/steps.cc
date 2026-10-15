@@ -310,6 +310,7 @@ static const char * const TABLE[]={
   "sec^2","sec(x)^2","tan(x)", "csc^2","csc(x)^2","-cot(x)",
   "sec*tan","sec(x)*tan(x)","sec(x)", "sec*tan","tan(x)*sec(x)","sec(x)",
   "csc*cot","csc(x)*cot(x)","-csc(x)", "csc*cot","cot(x)*csc(x)","-csc(x)",
+  "sec^3","sec(x)^3","(sec(x)*tan(x)+ln(abs(sec(x)+tan(x))))/2",
   "1/(1+x^2)","1/(1+x^2)","atan(x)", "1/sqrt(1-x^2)","1/sqrt(1-x^2)","asin(x)", 0};
 // a of w = a*v+b (w linear in v, not v itself); 0 otherwise
 static gen lin_coef(const gen & w,const gen & v){
@@ -393,11 +394,18 @@ static __attribute__((noinline)) bool usub(const gen & f,const gen & v,gen & r,s
     // b replaced by u before simplifying: what is left of v must cancel (x/(x^2+1) over 2x: 1/(2u));
     // evaluated (normal leaves an unevaluated 2x*cos(u)/(2x) as is), then parsed again from its
     // text (evaluated, 1/u is inv(u): the rules know the typed forms)
-    const gen G0=normal(eval(quotesubst(sym2(at_division,f,db),b,u,contextptr),1,contextptr),contextptr);
+    // u = tan(w): sec(w)^2 is 1+u^2 (giac's derivative of tan is 1+tan^2), du shown as sec(w)^2 dx
+    gen ff=f,dshow=db;
+    if (is_op(b,at_tan)){
+      const gen s2=sym2(at_pow,sym1(at_sec,b._SYMBptr->feuille),2);
+      ff=quotesubst(f,s2,sym2(at_plus,1,sym2(at_pow,b,2)),contextptr);
+      dshow=cmul(normal(db/(1+b*b),contextptr),s2);
+    }
+    const gen G0=normal(eval(quotesubst(sym2(at_division,ff,db),b,u,contextptr),1,contextptr),contextptr);
     if (!free_of(G0,v) || interrupted) continue;
     const gen G(G0.print(contextptr),contextptr);
     const size_t n0=pre.size();
-    step s={"u-substitution","Let "+m(txt(u)+" = "+txt(b))+", "+m(txt(dvar(u))+" = "+txt(mul(db,dvar(v)))),txt(inode(G,u))};
+    step s={"u-substitution","Let "+m(txt(u)+" = "+txt(b))+", "+m(txt(dvar(u))+" = "+txt(mul(dshow,dvar(v)))),txt(inode(G,u))};
     pre.push_back(s);
     gen Eu=inode(G,u);
     ++usub_depth;
@@ -532,6 +540,57 @@ static __attribute__((noinline)) bool split_num(const gen & f,const gen & v,gen 
   return true;
 }
 
+// f = c*sin(w)^m*cos(w)^n (products, powers; w linear in v; m, n >= 0)
+static bool sincos(const gen & f,const gen & v,gen & c,gen & w,int & m,int & n){
+  if (free_of(f,v)){ c=c*f; return true; }
+  if (is_op(f,at_prod)){
+    const vecteur a=args(f);
+    for (unsigned i=0;i<a.size();++i) if (!sincos(a[i],v,c,w,m,n)) return false;
+    return true;
+  }
+  int e=1;
+  gen b=f;
+  if (is_op(f,at_pow) && args(f)[1].type==_INT_ && args(f)[1].val>0){ e=args(f)[1].val; b=args(f)[0]; }
+  if (!is_op(b,at_sin) && !is_op(b,at_cos)) return false;
+  const gen a=b._SYMBptr->feuille;
+  if ((!is_zero(w) && !(a==w)) || (!(a==v) && is_zero(lin_coef(a,v)))) return false;
+  w=a;
+  (is_op(b,at_sin)?m:n)+=e;
+  return true;
+}
+// trig integrals: an odd power (3 or more) keeps one factor and turns the rest by
+// sin^2 + cos^2 = 1 (then a u-substitution); even powers of both: the power-reducing identities
+// (tlin); tan^n (n >= 2): tan^(n-2)*(sec^2 - 1)
+static __attribute__((noinline)) bool trig_rewrite(const gen & f,const gen & v,gen & r,string & label,string & choice){
+  if (is_op(f,at_pow) && is_op(args(f)[0],at_tan) && args(f)[1].type==_INT_ && args(f)[1].val>=2){
+    const gen t=args(f)[0],w=t._SYMBptr->feuille,k=args(f)[1].val-2,s2=sym2(at_pow,sym1(at_sec,w),2);
+    if (!(w==v) && is_zero(lin_coef(w,v))) return false;
+    r=inode(sym2(at_binary_minus,mul(pw(t,k),s2),pw(t,k)),v);
+    label="Pythagorean identity";
+    choice=m(txt(sym2(at_pow,t,2))+" = "+txt(s2)+"-1");
+    return true;
+  }
+  gen c=1,w=0;
+  int M=0,N=0;
+  if (!sincos(f,v,c,w,M,N) || M+N<2) return false;
+  const gen S=sym1(at_sin,w),C=sym1(at_cos,w);
+  if ((M%2 && M>=3) || (N%2 && N>=3)){ // keep one factor of the odd power (sin first: u = cos)
+    const bool s=M%2 && M>=3;
+    const gen keep=s?S:C,other=s?C:S;
+    const int o=(s?M:N)-1;
+    const gen id=sym2(at_binary_minus,1,sym2(at_pow,other,2)); // 1 - cos^2 (or 1 - sin^2)
+    r=inode(mul(mul(c,pw(id,o/2)),mul(pw(other,s?N:M),keep)),v);
+    label="Pythagorean identity";
+    choice=m(txt(sym2(at_pow,keep,2))+" = "+txt(id));
+    return true;
+  }
+  if (M%2 || N%2) return false; // sin*cos^n, sin^n*cos: a u-substitution
+  r=inode(gen(_tlin(eval(f,1,contextptr),contextptr).print(contextptr),contextptr),v);
+  label="Power-reducing identity";
+  choice=m("sin(u)^2 = (1-cos(2*u))/2")+", "+m("cos(u)^2 = (1+cos(2*u))/2");
+  return true;
+}
+
 // one rule applied to the integral of f in v: its result r (with integrate nodes left for the
 // rest), the rule's name, what was chosen, and steps to show before this one (pre: a
 // u-substitution's integral in u); false: no rule
@@ -647,7 +706,7 @@ static __attribute__((noinline)) bool irule(const gen & f,const gen & v,gen & r,
     }
   }
   r=table_int(f,v,label,choice);
-  if (!is_zero(r)) return true;
+  if (!is_zero(r) || trig_rewrite(f,v,r,label,choice)) return true;
   return usub(f,v,r,label,choice,pre) || pfrac(f,v,r,label,choice) || split_num(f,v,r,label,choice) || parts(f,v,r,label,choice);
 }
 
