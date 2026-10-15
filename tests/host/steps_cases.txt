@@ -28,3 +28,8 @@ diff(t^2*sin(t),t) :: Product rule, Power rule, Derivative of sin
 diff(x*x*x*x*x*sin(x),x) :: Product rule
 diff(f(x),x) :: NONE
 diff(floor(x),x) :: NONE
+# a stored variable: the problem shows its name, so steps on it would mislead (purged after)
+y:=3x+1 :: NONE
+diff(y,x,2) :: NONE
+diff(x*y,x) :: NONE
+purge(y) :: NONE

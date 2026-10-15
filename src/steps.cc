@@ -295,6 +295,11 @@ int steps_build(const char * input,const string & answer,string & problem,vector
   if (n<1 || n>3) return STEPS_NONE;
   problem=txt(in);
   gen f=a[0];
+  // a stored variable whose value has x in it (y:=3x+1, then diff(y,x)): the steps would show y
+  // and treat it as a constant
+  const vecteur ids=lidnt(f);
+  for (unsigned i=0;i<ids.size();++i)
+    if (ids[i]!=x && contains(eval(ids[i],1,contextptr),x)) return STEPS_NONE;
   for (int k=1;k<=n;++k){
     if (k>1){
       step s={"Differentiate again",k==2?"the second derivative":"the third derivative",txt(dnode(f,x))};
@@ -302,7 +307,8 @@ int steps_build(const char * input,const string & answer,string & problem,vector
     }
     const gen d=derive(eval(f,1,contextptr),x,contextptr); // giac's derivative: each step must equal it
     gen g=D(f,x);
-    if (!is_op(g,at_diff)){ // a constant or linear function: one step
+    if (!is_op(g,at_diff)){ // a constant or linear function: one step, checked as the others
+      if (!same(g,d)){ out.clear(); return interrupted?STEPS_STOPPED:STEPS_NONE; }
       step s={is_zero(g)?"Constant rule":"Linear function","",txt(g)};
       out.push_back(s);
     }
