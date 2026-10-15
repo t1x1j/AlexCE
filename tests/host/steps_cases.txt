@@ -87,6 +87,14 @@ integrate(1/(x^2*sqrt(x^2+4)),x) :: Trig substitution, Back-substitute :: `x = 2
 integrate(sqrt(x^2-4)/x,x) :: Trig substitution, Back-substitute :: `x = 2*sec(t)`
 integrate(x^3/sqrt(4-x^2),x) :: Trig substitution, Back-substitute
 integrate(sqrt(x^2+2x),x) :: NONE
+integrate(x^3*sqrt(x^2+4),x) :: ANY
+integrate(x^2*sqrt(x^2-1),x) :: ANY
+integrate(tan(x)*sec(x)^3,x) :: u-substitution, Power rule, Substitute back :: Let `u = sec(x)`
+integrate(1/sqrt(x^2+4),x) :: Trig substitution, Integral of sec, Back-substitute
+integrate(1/sqrt(x^2-9),x) :: Trig substitution, Integral of sec, Back-substitute
+integrate(sqrt(x^2+4),x) :: Trig substitution, Integral of sec^3, Back-substitute
+integrate(1/(2u+1),u) :: =Log rule :: `w = 2*u+1`
+integrate(cos(3u),u) :: =Integral of cos :: `w = 3*u`
 integrate(u*cos(u^2),u) :: u-substitution, Integral of cos, Substitute back :: Let `w = u^2`
 integrate(x*e^x,x) :: Integration by parts, Integral of exp :: u = x
 integrate(x^2*e^x,x) :: Integration by parts, Integration by parts, Integral of exp

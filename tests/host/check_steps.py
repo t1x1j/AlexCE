@@ -2,7 +2,8 @@
 """Checks hostgiac -k -S -p output against tests/host/steps_cases.txt.
 Usage: check_steps.py <cases> <output>. Each case: its labels must appear in order among the
 problem's [label] lines (a final [Simplify] may follow); '=labels' expects exactly those labels
-(a final Simplify or Add the constant aside); ':: NONE' expects '(no steps)'. An
+(a final Simplify or Add the constant aside); ':: NONE' expects '(no steps)'; ':: ANY' only a
+clean end (not stopped, no crash). An
 optional third field ('input :: labels :: text') is text that must appear in the problem's
 output (math in a choice line is printed between backquotes). '(stopped)' always fails. Exit 1
 on any failure."""
@@ -38,6 +39,8 @@ for inp, exp, must in cases:
         print('TEXT', inp, 'missing', missing, '\n' + text); bad += 1; continue
     if '(stopped)' in text:
         print('STOPPED', inp); bad += 1; continue
+    if exp == ['ANY']:  # steps or none, as long as it ends cleanly
+        continue
     if exp == ['NONE']:
         if '(no steps)' not in text:
             print('EXPECTED NONE', inp, '\n' + text); bad += 1

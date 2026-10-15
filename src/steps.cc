@@ -328,6 +328,9 @@ static gen inner(const gen & f){
   return 0;
 }
 // f in the table, of v or of a linear w = a*v+b (the result over a: cos(3x) gives sin(3x)/3)
+static gen free_var(const gen & f); // (below)
+// the substitution's name in choice lines: u, or w (t, s) when f uses u
+static string uname(const gen & f){ const gen u=free_var(f); return is_zero(u)?string("u"):u.print(contextptr); }
 static gen table_int(const gen & f,const gen & v,string & label,string & choice){
   if (f.type!=_SYMB) return 0;
   if (is_op(f,at_pow) && args(f)[1]==v && free_of(args(f)[0],v)){ // a^v/ln(a)
@@ -345,7 +348,7 @@ static gen table_int(const gen & f,const gen & v,string & label,string & choice)
         label=string("Integral of ")+TABLE[k];
         const gen r=quotesubst(gen(TABLE[k+2],contextptr),x,w,contextptr);
         if (!pass) return r;
-        choice=m("u = "+txt(w))+": divide by "+m(txt(a));
+        choice=m(uname(f)+" = "+txt(w))+": divide by "+m(txt(a));
         return is_one(a)?r:sym2(at_division,r,den(a));
       }
     }
@@ -394,14 +397,19 @@ static __attribute__((noinline)) bool usub(const gen & f,const gen & v,gen & r,s
     // b replaced by u before simplifying: what is left of v must cancel (x/(x^2+1) over 2x: 1/(2u));
     // evaluated (normal leaves an unevaluated 2x*cos(u)/(2x) as is), then parsed again from its
     // text (evaluated, 1/u is inv(u): the rules know the typed forms)
-    // u = tan(w): sec(w)^2 is 1+u^2 (giac's derivative of tan is 1+tan^2), du shown as sec(w)^2 dx
-    gen ff=f,dshow=db;
+    // u = tan(w): sec(w)^2 is 1+u^2 (giac's derivative of tan is 1+tan^2), du shown as sec(w)^2 dx;
+    // u = sec(w): du = sec(w)tan(w) dx kept as written (giac's is sin/cos^2: tan would not cancel)
+    gen ff=f,dd=db,dshow=db;
     if (is_op(b,at_tan)){
       const gen s2=sym2(at_pow,sym1(at_sec,b._SYMBptr->feuille),2);
       ff=quotesubst(f,s2,sym2(at_plus,1,sym2(at_pow,b,2)),contextptr);
       dshow=cmul(normal(db/(1+b*b),contextptr),s2);
     }
-    const gen G0=normal(eval(quotesubst(sym2(at_division,ff,db),b,u,contextptr),1,contextptr),contextptr);
+    if (is_op(b,at_sec)){
+      const gen w=b._SYMBptr->feuille;
+      dd=dshow=cmul(normal(derive(eval(w,1,contextptr),v,contextptr),contextptr),sym2(at_prod,b,sym1(at_tan,w)));
+    }
+    const gen G0=normal(eval(quotesubst(sym2(at_division,ff,dd),b,u,contextptr),1,contextptr),contextptr);
     if (!free_of(G0,v) || interrupted) continue;
     const gen G(G0.print(contextptr),contextptr);
     const size_t n0=pre.size();
@@ -454,8 +462,12 @@ static __attribute__((noinline)) bool parts(const gen & f,const gen & v,gen & r,
   const gen V=normal(_integrate(makesequence(eval(dV,1,contextptr),v),contextptr),contextptr);
   if (interrupted || is_undef(V) || V.type==_STRNG || contains(V,at_integrate)) return false;
   const gen dU=normal(derive(eval(U,1,contextptr),v,contextptr),contextptr),d=dvar(v);
+  // the new integral as text: a long one is no textbook step (and parts again on it grows without
+  // end until giac cannot read it back)
+  const string vdu=normal(mul(V,dU),contextptr).print(contextptr);
+  if (vdu.size()>200) return false;
   ++parts_count;
-  r=sym2(at_plus,mul(U,V),neg(inode(gen(normal(mul(V,dU),contextptr).print(contextptr),contextptr),v)));
+  r=sym2(at_plus,mul(U,V),neg(inode(gen(vdu,contextptr),v)));
   label="Integration by parts";
   choice=m("u = "+txt(U))+", "+m("dv = "+txt(mul(dV,d)))+"\n"+m("du = "+txt(mul(dU,d)))+", "+m("v = "+txt(V));
   return true;
@@ -575,7 +587,11 @@ static __attribute__((noinline)) bool trig_sub(const gen & f,const gen & v,gen &
   gen Et;
   for (int pass=0;;++pass){
     if (pass>1 || interrupted) return false;
-    const gen G((pass?normal(_tan2sincos(G0,contextptr),contextptr):G0).print(contextptr),contextptr);
+    gen G((pass?normal(_tan2sincos(G0,contextptr),contextptr):G0).print(contextptr),contextptr);
+    if (!pass && is_op(G,at_division)){ // c/cos(t)^n (sec(t) evaluated) as the table has it: c*sec(t)^n
+      const gen q=args(G)[1],c=is_op(q,at_pow)?args(q)[0]:q,n=is_op(q,at_pow)?args(q)[1]:gen(1);
+      if (is_op(c,at_cos) && n.type==_INT_ && free_of(args(G)[0],t)) G=mul(args(G)[0],pw(sym1(at_sec,c._SYMBptr->feuille),n));
+    }
     step s={"Trig substitution",m(txt(v)+" = "+txt(g[0]))+", "+m(txt(dvar(v))+" = "+txt(mul(g[1],dvar(t))))+"\n"+m(txt(roots[0])+" = "+txt(g[2])),txt(inode(G,t))};
     pre.push_back(s);
     Et=inode(G,t);
@@ -692,7 +708,7 @@ static __attribute__((noinline)) bool irule(const gen & f,const gen & v,gen & r,
       if (is_op(q,at_pow) && free_of(args(q)[1],v)){ base=args(q)[0]; nb=args(q)[1]; }
       const gen c=lin_coef(base,v);
       if (!is_zero(c)){
-        choice=m("u = "+txt(base));
+        choice=m(uname(f)+" = "+txt(base));
         if (is_one(nb)){ r=cmul(p/c,sym1(at_ln,sym1(at_abs,base))); label="Log rule"; return true; }
         const gen e=eval(1-nb,1,contextptr);
         r=sym2(at_division,cmul(p/c,pw(base,e)),den(e));
@@ -741,7 +757,7 @@ static __attribute__((noinline)) bool irule(const gen & f,const gen & v,gen & r,
     if (!is_zero(c) && !is_zero(e1)){
       r=sym2(at_division,pw(a[0],e1),den(eval(e1*c,1,contextptr)));
       label="Power rule";
-      choice=m("u = "+txt(a[0]));
+      choice=m(uname(f)+" = "+txt(a[0]));
       return true;
     }
   }
