@@ -533,8 +533,8 @@ static void status_draw(int force) {
     }
     else { // the app's name and version by the battery (the 2nd/alpha chip takes its place)
       const int vw = ui_text_width(&ui_tr9, "v" FLOWCE_VERSION, -1) + 3;
-      int x = UI_W - 30 - vw - ui_text_width(&ui_tb9, "FlowCE", -1);
-      x += ui_text(&ui_tb9, "Flow", x, 12, UC_SUB, UC_BG, 0);
+      int x = UI_W - 30 - vw - ui_text_width(&ui_tb9, "AlexCE", -1);
+      x += ui_text(&ui_tb9, "Alex", x, 12, UC_SUB, UC_BG, 0);
       x += ui_text(&ui_tb9, "CE", x, 12, UC_ACC, UC_BG, 0);
       ui_text(&ui_tr9, "v" FLOWCE_VERSION, x + 3, 12, UC_SUB, UC_BG, 0);
     }

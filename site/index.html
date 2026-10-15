@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FlowCE: calculus on your TI-84 Plus CE</title>
+<title>AlexCE: calculus on your TI-84 Plus CE</title>
 <meta name="description" content="A free computer algebra system for the TI-84 Plus CE, built for Calc 1 and Calc 2: exact answers in textbook form, math drawn as you type it, graphs, light and dark themes. Install it from this page.">
-<meta property="og:title" content="FlowCE: calculus on your TI-84 Plus CE">
+<meta property="og:title" content="AlexCE: calculus on your TI-84 Plus CE">
 <meta property="og:description" content="Exact answers in textbook form, math drawn as you type it, graphs. Free and open source.">
 <meta property="og:image" content="media/screenshots/sec.png">
 <link rel="icon" href="media/icon.svg" type="image/svg+xml">
@@ -18,12 +18,12 @@
 
 <header class="top">
   <div class="wrap top-in">
-    <a class="wordmark" href="#">Flow<span>CE</span></a>
+    <a class="wordmark" href="#">Alex<span>CE</span></a>
     <nav>
       <a href="#features">Features</a>
       <a href="#install">Install</a>
       <a href="#keys">Keys</a>
-      <a href="https://github.com/tommyb3ll/FlowCE">GitHub</a>
+      <a href="https://github.com/t1x1j/FlowCE-Steps">GitHub</a>
     </nav>
   </div>
 </header>
@@ -31,19 +31,19 @@
 <main>
 <section class="hero wrap">
   <div class="hero-text">
-    <h1><span class="wordmark big">Flow<span>CE</span></span></h1>
+    <h1><span class="wordmark big">Alex<span>CE</span></span></h1>
     <p class="lead">Calculus on your TI-84 Plus CE.</p>
     <p>Type math the way it looks. Get answers the way your textbook writes them: <span class="m">π²/6</span>, not 1.64493, with the decimal right under the exact one.</p>
     <div class="cta">
       <a class="btn primary" href="#install">Install on my calculator</a>
-      <a class="btn" href="https://github.com/tommyb3ll/FlowCE">Source code</a>
+      <a class="btn" href="https://github.com/t1x1j/FlowCE-Steps">Source code</a>
     </div>
     <p class="fine">Free and open source (GNU GPL). For the TI-84 Plus CE and TI-83 Premium CE.</p>
   </div>
   <figure class="screen hero-screen">
     <picture>
       <source srcset="media/flowce_dark.gif" media="(prefers-color-scheme: dark)">
-      <img src="media/flowce_light.gif" width="640" height="480" alt="FlowCE on the calculator: a definite integral typed in 2D, the sum of 1/n² giving π²/6, other forms of an answer, and a graph with trace">
+      <img src="media/flowce_light.gif" width="640" height="480" alt="AlexCE on the calculator: a definite integral typed in 2D, the sum of 1/n² giving π²/6, other forms of an answer, and a graph with trace">
     </picture>
   </figure>
 </section>
@@ -101,7 +101,7 @@
 
 <section id="install" class="wrap">
   <h2>Install</h2>
-  <p class="intro">You need a <strong>TI-84 Plus CE</strong> (or TI-83 Premium CE) on <strong>OS 5.3 to 5.8.4</strong> and its USB cable. Install it from this page in Chrome, Edge, Opera or Brave on a computer (on Windows, with TI Connect CE 6.1 or newer installed), or with TI Connect CE. FlowCE fills most of the calculator's memory (2.8 MB), so installing it starts by <strong>clearing the archive</strong> (all apps and archived files): back up anything you want to keep first. FlowCE is a computer algebra system: follow your class and test rules on calculators.</p>
+  <p class="intro">You need a <strong>TI-84 Plus CE</strong> (or TI-83 Premium CE) on <strong>OS 5.3 to 5.8.4</strong> and its USB cable. Install it from this page in Chrome, Edge, Opera or Brave on a computer (on Windows, with TI Connect CE 6.1 or newer installed), or with TI Connect CE. AlexCE fills most of the calculator's memory (2.8 MB), so installing it starts by <strong>clearing the archive</strong> (all apps and archived files): back up anything you want to keep first. AlexCE is a computer algebra system: follow your class and test rules on calculators.</p>
 
   <div class="installer" id="installer">
     <div class="notice" id="no-usb" hidden>
@@ -122,17 +122,17 @@
       </li>
 
       <li class="step" data-step="install">
-        <div class="step-head"><span class="num">2</span><h3>Install FlowCE</h3></div>
+        <div class="step-head"><span class="num">2</span><h3>Install AlexCE</h3></div>
         <div class="step-body">
           <div id="erase-part">
-            <p id="erase-what">FlowCE needs almost all of the calculator's memory, so its <strong>archive is erased first</strong>: all apps and archived programs and variables go (the OS and what's in RAM stay). Back up anything you want to keep.</p>
+            <p id="erase-what">AlexCE needs almost all of the calculator's memory, so its <strong>archive is erased first</strong>: all apps and archived programs and variables go (the OS and what's in RAM stay). Back up anything you want to keep.</p>
             <label class="confirm"><input type="checkbox" id="erase-ok"> <span id="erase-label">I understand: erase all apps and archived files on my calculator</span></label>
           </div>
-          <button class="btn primary" id="btn-install" disabled>Install FlowCE</button>
+          <button class="btn primary" id="btn-install" disabled>Install AlexCE</button>
           <button class="btn primary" id="btn-reconnect" hidden>Reconnect calculator</button>
           <div class="progress" id="progress" hidden><div class="bar"><span id="bar"></span></div></div>
           <div class="status" id="st-install" aria-live="polite"></div>
-          <p class="fine">This page erases the calculator, sends FlowCE <span id="version"></span> (45 files) and opens its installer. To erase it yourself instead: <kbd>2nd</kbd> <kbd>+</kbd> (MEM) → <kbd>7</kbd> Reset… → right arrow to <strong>ARCHIVE</strong> → <kbd>3</kbd> Both… → <kbd>2</kbd> Reset, then connect again.</p>
+          <p class="fine">This page erases the calculator, sends AlexCE <span id="version"></span> (46 files) and opens its installer. To erase it yourself instead: <kbd>2nd</kbd> <kbd>+</kbd> (MEM) → <kbd>7</kbd> Reset… → right arrow to <strong>ARCHIVE</strong> → <kbd>3</kbd> Both… → <kbd>2</kbd> Reset, then connect again.</p>
         </div>
       </li>
 
@@ -141,11 +141,11 @@
         <div class="step-body">
           <ol class="sub">
             <li>The calculator shows the arTIfiCE shell with <strong>INST</strong>: press <kbd>enter</kbd>. That's the only key to press.</li>
-            <li>INST installs FlowCE, counting down from 42 to 0, then the calculator restarts by itself (<em>"RAM Cleared"</em>). Don't touch it meanwhile.</li>
-            <li>Press <kbd>apps</kbd> → <strong>FlowCE</strong>.</li>
+            <li>INST installs AlexCE, counting down from 43 to 0, then the calculator restarts by itself (<em>"RAM Cleared"</em>). Don't touch it meanwhile.</li>
+            <li>Press <kbd>apps</kbd> → <strong>AlexCE</strong>.</li>
           </ol>
           <div class="status" id="st-finish" aria-live="polite"></div>
-          <img class="gif" src="media/install/install_web.gif" loading="lazy" width="640" height="544" alt="The arTIfiCE shell with INST, enter, the countdown, RAM Cleared, then apps and FlowCE">
+          <img class="gif" src="media/install/install_web.gif" loading="lazy" width="640" height="544" alt="The arTIfiCE shell with INST, enter, the countdown, RAM Cleared, then apps and AlexCE">
         </div>
       </li>
     </ol>
@@ -155,10 +155,10 @@
     <summary>Install with TI Connect CE instead</summary>
     <ol>
       <li><strong>Clear the archive:</strong> <kbd>2nd</kbd> <kbd>+</kbd> (MEM) → <kbd>7</kbd> Reset… → right arrow to <strong>ARCHIVE</strong> → <kbd>3</kbd> Both… → <kbd>2</kbd> Reset.</li>
-      <li>Download <a href="https://github.com/tommyb3ll/FlowCE/releases/latest/download/FlowCE.b84"><code>FlowCE.b84</code></a>, drag it onto the calculator in <a href="https://education.ti.com/en/products/computer-software/ti-connect-ce-sw">TI Connect CE</a> and send it (45 files: AppIns00 to AppIns42, A and INST).</li>
-      <li><kbd>prgm</kbd> → <kbd>enter</kbd> → <kbd>enter</kbd> opens the arTIfiCE shell; <kbd>enter</kbd> starts INST and <kbd>enter</kbd> again installs. It counts down from 42 to 0.</li>
+      <li>Download <a href="files/AlexCE.b84"><code>AlexCE.b84</code></a>, drag it onto the calculator in <a href="https://education.ti.com/en/products/computer-software/ti-connect-ce-sw">TI Connect CE</a> and send it (46 files: AppIns00 to AppIns43, A and INST).</li>
+      <li><kbd>prgm</kbd> → <kbd>enter</kbd> → <kbd>enter</kbd> opens the arTIfiCE shell; <kbd>enter</kbd> starts INST and <kbd>enter</kbd> again installs. It counts down from 43 to 0.</li>
       <li>At <em>"Success! Will now reset"</em>, press <kbd>enter</kbd>.</li>
-      <li><kbd>clear</kbd>, then <kbd>apps</kbd> → <strong>FlowCE</strong>.</li>
+      <li><kbd>clear</kbd>, then <kbd>apps</kbd> → <strong>AlexCE</strong>.</li>
     </ol>
   </details>
 
@@ -169,10 +169,10 @@
       <li><strong>"Connect" can't open the calculator on a Mac or Chromebook:</strong> close TI Connect CE (it may be holding the calculator), unplug the calculator, plug it back in and try again.</li>
       <li><strong>Linux:</strong> let the browser use the calculator with a udev rule, for example <code>SUBSYSTEM=="usb", ATTRS{idVendor}=="0451", ATTRS{idProduct}=="e008", TAG+="uaccess"</code> in <code>/etc/udev/rules.d/69-ti-calc.rules</code>, then plug the calculator in again.</li>
       <li><strong>Still not enough free memory after the erase:</strong> some calculators keep apps through the erase, often TI's language apps (Español, Français…). Delete them in TI Connect CE, or on the calculator: <kbd>2nd</kbd> <kbd>+</kbd> (MEM) → <kbd>2</kbd> Mem Mgmt/Del… → Apps…, then <kbd>del</kbd> on each. Then connect again.</li>
-      <li><strong>The calculator shows "RAM Cleared" but this page still waits:</strong> FlowCE is installed; press <kbd>apps</kbd> → <strong>FlowCE</strong>.</li>
-      <li><strong>The screen freezes at "Success! Will now reset"</strong> (when installing with TI Connect CE): press the reset button on the back of the calculator (a pen tip or a paperclip). FlowCE stays installed.</li>
-      <li><strong>The calculator acts strangely</strong> (menus glitch, TI Connect CE stays on "refreshing"): clear the RAM: <kbd>2nd</kbd> <kbd>+</kbd> → <kbd>7</kbd> Reset… → <kbd>1</kbd> All RAM… → <kbd>2</kbd> Reset. This does not remove FlowCE.</li>
-      <li><strong>OS 5.8.5 or later:</strong> the installer uses arTIfiCE v2.1, which works up to OS 5.8.4. Newer OS versions need arTIfiCE v3, which FlowCE doesn't support yet.</li>
+      <li><strong>The calculator shows "RAM Cleared" but this page still waits:</strong> AlexCE is installed; press <kbd>apps</kbd> → <strong>AlexCE</strong>.</li>
+      <li><strong>The screen freezes at "Success! Will now reset"</strong> (when installing with TI Connect CE): press the reset button on the back of the calculator (a pen tip or a paperclip). AlexCE stays installed.</li>
+      <li><strong>The calculator acts strangely</strong> (menus glitch, TI Connect CE stays on "refreshing"): clear the RAM: <kbd>2nd</kbd> <kbd>+</kbd> → <kbd>7</kbd> Reset… → <kbd>1</kbd> All RAM… → <kbd>2</kbd> Reset. This does not remove AlexCE.</li>
+      <li><strong>OS 5.8.5 or later:</strong> the installer uses arTIfiCE v2.1, which works up to OS 5.8.4. Newer OS versions need arTIfiCE v3, which AlexCE doesn't support yet.</li>
     </ul>
   </details>
 </section>
@@ -201,12 +201,12 @@
 
 <section class="wrap credits">
   <h2>Credits</h2>
-  <p>FlowCE is a fork of <a href="https://www-fourier.univ-grenoble-alpes.fr/~parisse/">KhiCAS</a> by Bernard Parisse. The math engine is Giac, by Bernard Parisse and contributors (Institut Fourier, Université Grenoble Alpes). The console interface was adapted from Eigenmath for the Casio Prizm by G. Maia, Mike Smith, Nemhardy and LePhenixNoir. Thanks to Adrien Bertrand, Xavier Andreani and the TI-83/84 development community, especially Jacob Young, commandblockguy and Matt Waltz. The installer is <a href="https://yvantt.github.io/arTIfiCE/">arTIfiCE</a> by YvanTT; this page talks to the calculator with code adapted from <a href="https://github.com/Timendus/ticalc-usb">ticalc-usb</a> by Tim Franssen and <a href="https://github.com/debrouxl/tilibs">tilibs</a>. Fonts: Atkinson Hyperlegible (Braille Institute) and STIX Two.</p>
+  <p>AlexCE is made by t1x1j and based on <a href="https://github.com/tommyb3ll/FlowCE">FlowCE</a> by Tommy Bell, a fork of <a href="https://www-fourier.univ-grenoble-alpes.fr/~parisse/">KhiCAS</a> by Bernard Parisse. The math engine is Giac, by Bernard Parisse and contributors (Institut Fourier, Université Grenoble Alpes). The console interface was adapted from Eigenmath for the Casio Prizm by G. Maia, Mike Smith, Nemhardy and LePhenixNoir. Thanks to Adrien Bertrand, Xavier Andreani and the TI-83/84 development community, especially Jacob Young, commandblockguy and Matt Waltz. The installer is <a href="https://yvantt.github.io/arTIfiCE/">arTIfiCE</a> by YvanTT; this page talks to the calculator with code adapted from <a href="https://github.com/Timendus/ticalc-usb">ticalc-usb</a> by Tim Franssen and <a href="https://github.com/debrouxl/tilibs">tilibs</a>. Fonts: Atkinson Hyperlegible (Braille Institute) and STIX Two.</p>
 </section>
 </main>
 
 <footer class="wrap foot">
-  <p>FlowCE is free software under the <a href="https://github.com/tommyb3ll/FlowCE/blob/main/LICENSE">GNU General Public License</a>, version 3 or later, with no warranty. Not affiliated with Texas Instruments; TI-84 Plus CE is a trademark of Texas Instruments.</p>
+  <p>AlexCE is free software under the <a href="https://github.com/t1x1j/FlowCE-Steps/blob/steps/LICENSE">GNU General Public License</a>, version 3 or later, with no warranty. Not affiliated with Texas Instruments; TI-84 Plus CE is a trademark of Texas Instruments.</p>
 </footer>
 
 <script type="module" src="installer.js"></script>

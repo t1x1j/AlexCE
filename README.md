@@ -1,4 +1,4 @@
-<h1 align="center">FlowCE</h1>
+<h1 align="center">AlexCE</h1>
 
 <p align="center">
   <b>Calculus on your TI-84 Plus CE.</b><br>
@@ -6,18 +6,17 @@
 </p>
 
 <p align="center">
-  <a href="https://tommyb3ll.github.io/FlowCE/"><img src="https://img.shields.io/badge/install-from_the_web-245ccc" alt="Install from the web"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License: GPL-3.0"></a>
   <img src="https://img.shields.io/badge/calculator-TI--84%20Plus%20CE-2a5bd7" alt="TI-84 Plus CE">
   <img src="https://img.shields.io/badge/engine-Giac-555" alt="Engine: Giac">
 </p>
 
 <p align="center">
-  <img src="docs/flowce_light.gif" width="48%" alt="FlowCE in the Paper theme: a definite integral, a series, other forms and a graph">
+  <img src="docs/flowce_light.gif" width="48%" alt="AlexCE in the Paper theme: a definite integral, a series, other forms and a graph">
   <img src="docs/flowce_dark.gif" width="48%" alt="The same in the Night theme">
 </p>
 
-FlowCE is a computer algebra system for the TI-84 Plus CE, built for Calc 1 and Calc 2. It gives
+AlexCE is a computer algebra system for the TI-84 Plus CE, built for Calc 1 and Calc 2. It gives
 exact answers: `π²/6`, not `1.64493`; `ln|sec x + tan x| + C`; `(2n²+3n+1)/(6n²)`. The decimal value
 sits right under the exact one. The interface is new from top to bottom: a clean light or dark
 look, math drawn as you type it, and keys that work the way a TI user expects.
@@ -76,9 +75,9 @@ look, math drawn as you type it, and keys that work the way a TI user expects.
 
 ## Install
 
-**The easy way: [install from the FlowCE page](https://tommyb3ll.github.io/FlowCE/#install).** Plug in
+**The easy way: install from the AlexCE page** (`bash site/build.sh AlexCE.b84`, then serve `_site/` on localhost). Plug in
 the calculator, open the page in Chrome or Edge and click Install: it checks the calculator,
-erases its archive (after you agree), sends FlowCE and opens the installer. Then press `enter`
+erases its archive (after you agree), sends AlexCE and opens the installer. Then press `enter`
 once on the calculator: it installs and restarts by itself. On Windows it needs
 [TI Connect CE](https://education.ti.com/en/products/computer-software/ti-connect-ce-sw) 6.1 or
 newer installed (for its USB driver). Or install it by hand:
@@ -86,34 +85,34 @@ newer installed (for its USB driver). Or install it by hand:
 You need a **TI-84 Plus CE** (or TI-83 Premium CE) on **OS 5.3 to 5.8.4** (tested on 5.8.0 and
 5.8.2; OS 5.8.5 needs [arTIfiCE v3](https://yvantt.github.io/arTIfiCE/), which these steps don't
 cover yet), a USB cable and [TI Connect CE](https://education.ti.com/en/products/computer-software/ti-connect-ce-sw).
-FlowCE fills most of the memory (about 2.8 MB), so the install starts by clearing it: back up
-anything you want to keep first. It takes about 10 minutes. FlowCE is a computer algebra
+AlexCE fills most of the memory (about 2.8 MB), so the install starts by clearing it: back up
+anything you want to keep first. It takes about 10 minutes. AlexCE is a computer algebra
 system: follow your test's calculator rules (some tests, like the ACT, don't allow one).
 
 1. **Clear the memory:** `2nd` `+` (MEM) → `7:Reset...` → right arrow twice to **ALL** →
    `1:All Memory...` → `2:Reset`. This erases everything except the OS: apps, programs and
    variables.
 2. **Send the bundle:** download
-   [`FlowCE.b84`](https://github.com/tommyb3ll/FlowCE/releases/latest/download/FlowCE.b84)
+   `AlexCE.b84`
    (always the latest release), drag it onto the calculator in TI Connect CE and send it
    (45 files: AppIns00-42, A and INST).
 3. **Run the installer:** `prgm` → `enter` → `enter` opens the arTIfiCE shell; `enter` starts
    INST and `enter` again installs. It counts down from 42 to 0; don't touch the calculator.
 4. At *"Success! Will now reset"*, press `enter` (a few times if the screen looks odd).
-5. **Start:** `clear`, then `apps` → **FlowCE**.
+5. **Start:** `clear`, then `apps` → **AlexCE**.
 
 What it looks like on the calculator:
 
-| 1. Clear the memory | 3. Run the installer | 5. Start FlowCE |
+| 1. Clear the memory | 3. Run the installer | 5. Start AlexCE |
 |:-:|:-:|:-:|
-| ![Clearing the memory: MEM, Reset, ALL, All Memory, Reset](docs/install/install_1_reset.gif) | ![prgm, enter, enter, the arTIfiCE shell, INST, the countdown, Success](docs/install/install_3_run.gif) | ![apps, FlowCE, the start screen](docs/install/install_5_start.gif) |
+| ![Clearing the memory: MEM, Reset, ALL, All Memory, Reset](docs/install/install_1_reset.gif) | ![prgm, enter, enter, the arTIfiCE shell, INST, the countdown, Success](docs/install/install_3_run.gif) | ![apps, AlexCE, the start screen](docs/install/install_5_start.gif) |
 
 **If something goes wrong**
 - *The screen freezes at "Success! Will now reset":* press the reset button on the back of the
-  calculator (a pen tip or a paperclip). FlowCE stays installed.
+  calculator (a pen tip or a paperclip). AlexCE stays installed.
 - *The calculator acts strangely* (menus glitch, the screen flashes when you plug it in, TI
   Connect CE stays on "refreshing", a Goto error): clear the RAM: `2nd` `+` (MEM) →
-  `7:Reset...` → `1:All RAM...` → `2:Reset`. This does not remove FlowCE.
+  `7:Reset...` → `1:All RAM...` → `2:Reset`. This does not remove AlexCE.
 - *The calculator stays unresponsive:* hold the reset button for a few seconds. As a last resort,
   holding `2nd` and `del` while pressing reset lets you send the OS again.
 
@@ -141,11 +140,11 @@ What it looks like on the calculator:
 
 ## Building
 
-FlowCE builds with the [CE C/C++ toolchain](https://github.com/CE-Programming/toolchain) (CEdev
+AlexCE builds with the [CE C/C++ toolchain](https://github.com/CE-Programming/toolchain) (CEdev
 v14.2) plus `g++` and `python3`. Clone with `--recursive` (the engine is the `src/giac`
 submodule). `./mkappen` builds the English app: AppIns appvars (`.8xv`) installed by the INST
-program, and `FlowCE.b84` for TI Connect CE. `UNITS=1 ./mkappen` (after `make clean`) builds it
-with physical units instead of Python syntax, as released in `FlowCE-units.b84` (the two don't
+program, and `AlexCE.b84` for TI Connect CE. `UNITS=1 ./mkappen` (after `make clean`) builds it
+with physical units instead of Python syntax, as released in `AlexCE-units.b84` (the two don't
 both fit). `tools/dev/build.sh` builds in WSL from the working
 tree, `tools/emu/` drives the CEmu emulator for regression tests, screenshots and the GIFs
 above, and `tests/host/` holds host tests of the editor and the 2D layout.
@@ -156,7 +155,7 @@ Past 2,804,973 bytes it takes a 44th AppIns, which INST installs when it holds a
 
 ## Credits and license
 
-FlowCE is a fork of [KhiCAS](https://www-fourier.univ-grenoble-alpes.fr/~parisse/) by Bernard
+AlexCE is made by t1x1j and based on [FlowCE](https://github.com/tommyb3ll/FlowCE) by Tommy Bell, a fork of [KhiCAS](https://www-fourier.univ-grenoble-alpes.fr/~parisse/) by Bernard
 Parisse.
 
 - **Math engine:** Giac, by Bernard Parisse and contributors (Institut Fourier, Université
@@ -169,5 +168,5 @@ Parisse.
 - **Fonts:** Atkinson Hyperlegible (Braille Institute) and STIX Two, under the SIL Open Font
   License (`tools/fonts/src`).
 
-FlowCE is free software under the [GNU General Public License](LICENSE), version 3 or later. It
+AlexCE is free software under the [GNU General Public License](LICENSE), version 3 or later. It
 comes with no warranty.

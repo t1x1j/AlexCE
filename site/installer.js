@@ -1,5 +1,5 @@
-// The FlowCE web installer: checks the calculator, erases it (after the user agrees), sends the
-// release bundle (files/FlowCE.b84) over WebUSB and opens its installer, which then needs one key
+// The AlexCE web installer: checks the calculator, erases it (after the user agrees), sends the
+// release bundle (files/AlexCE.b84) over WebUSB and opens its installer, which then needs one key
 // press on the calculator. Steps and texts: index.html.
 import { Calculator, KEY, LinkError, TI_CE, readBundle, readTIFile } from './dusb.js';
 
@@ -92,7 +92,7 @@ function friendly(e) {
   if (e && e.code === 'timeout')
     return 'The calculator stopped answering. Make sure it is on the home screen, unplug it and plug it back in, then press Connect calculator again.';
   if (e && e.code === 'calc')
-    return 'The calculator refused a file. Usually part of FlowCE is already on it: erase it, then try again.';
+    return 'The calculator refused a file. Usually part of AlexCE is already on it: erase it, then try again.';
   if (e && e.code === 'short')
     return 'The calculator still doesn\'t have enough free memory: some apps stay after the erase (on some calculators, ' +
       'TI\'s language apps). Delete them in TI Connect CE (select them in the calculator\'s file list, then Delete), or on ' +
@@ -114,8 +114,8 @@ function problem(e) {
 
 async function loadBundle() {
   if (vars) return vars;
-  const res = await fetch('files/FlowCE.b84');
-  if (!res.ok) throw new Error('could not download FlowCE (' + res.status + ')');
+  const res = await fetch('files/AlexCE.b84');
+  if (!res.ok) throw new Error('could not download AlexCE (' + res.status + ')');
   const files = await readBundle(await res.arrayBuffer());
   const list = [];
   for (const f of files) {
@@ -125,7 +125,7 @@ async function loadBundle() {
   list.sort((a, b) => (a.name.startsWith('AppIns') - b.name.startsWith('AppIns')) || a.name.localeCompare(b.name));
   const inst = list.find(v => v.name === 'INST');
   if (list.filter(v => v.name.startsWith('AppIns')).length < 2 || !inst)
-    throw new Error('the FlowCE download is incomplete');
+    throw new Error('the AlexCE download is incomplete');
   const patched = patchInst(inst.data);
   if (patched) inst.data = patched;
   autoInst = !!patched;
@@ -148,14 +148,14 @@ async function check(c = calc) {
     blocked = true;
     lines.push(`<span class="bad">OS ${info.osText} isn't supported yet.</span> The installer uses arTIfiCE v2.1, which works up to OS 5.8.4.`);
   } else if (info.os && cmp(info.os, OS_MIN) < 0) {
-    lines.push(`OS ${info.osText} is older than the versions FlowCE was tested on (5.3 to 5.8.4); it may not work.`);
+    lines.push(`OS ${info.osText} is older than the versions AlexCE was tested on (5.3 to 5.8.4); it may not work.`);
   }
   // only the free archive decides (the RAM figure a real calculator reports is not its free RAM:
   // it read as too little even right after a full reset, and the page erased again and again)
-  console.info('FlowCE: calculator', info);
+  console.info('AlexCE: calculator', info);
   const needErase = info.freeFlash !== null && info.freeFlash < need;
   if (info.freeFlash !== null)
-    lines.push(`Free memory: ${MB(info.freeFlash)}` + (needErase ? `; FlowCE needs ${MB(need)}, so the calculator's archive will be erased.` : ' (enough for FlowCE).'));
+    lines.push(`Free memory: ${MB(info.freeFlash)}` + (needErase ? `; AlexCE needs ${MB(need)}, so the calculator's archive will be erased.` : ' (enough for AlexCE).'));
   state = { blocked, needErase };
   say('st-connect', (blocked ? '' : '<span class="ok">Connected.</span>') + `<ul>${lines.map(l => `<li>${l}</li>`).join('')}</ul>`);
   if (!blocked) {
@@ -226,7 +226,7 @@ async function erase(c) {
     await c.ping(180000); // answered once the erase is done (a timer for the slowest calculator)
     return c;
   } catch (e) {
-    console.warn('FlowCE: the calculator left after the erase:', e);
+    console.warn('AlexCE: the calculator left after the erase:', e);
     await c.close(); // cancels what is still waiting
     if (calc === c) calc = null;
     return null;
@@ -256,7 +256,7 @@ async function sendAll(c) {
   $('progress').hidden = false;
   for (let i = 0; i < vars.length; i++) {
     const v = vars[i];
-    say('st-install', `Sending FlowCE: ${v.name} (${i + 1} of ${vars.length})…`);
+    say('st-install', `Sending AlexCE: ${v.name} (${i + 1} of ${vars.length})…`);
     await c.sendVar(v, n => {
       $('bar').style.width = (100 * (done + n) / total).toFixed(1) + '%';
     });
@@ -273,7 +273,7 @@ async function proceed(c) {
     await c.pressKey(k);
     await sleep(700);
   }
-  say('st-install', '<span class="ok">FlowCE is on the calculator.</span>');
+  say('st-install', '<span class="ok">AlexCE is on the calculator.</span>');
   mark('install', 'done');
   mark('finish', 'active');
   waitingReset = true;
@@ -281,8 +281,8 @@ async function proceed(c) {
   // could replace the reset INST leaves for the OS. So nothing more is sent.
   say('st-finish', autoInst
     ? '<strong>Press <kbd>enter</kbd> on the calculator</strong> (the arTIfiCE shell shows INST). That\'s the only key: ' +
-      'it installs FlowCE, counting down from 42 to 0, and restarts by itself (<em>"RAM Cleared"</em>). Don\'t touch it meanwhile.'
-    : 'On the calculator, press <kbd>enter</kbd> to start INST, then <kbd>enter</kbd> again to install. It counts down from 42 to 0. ' +
+      'it installs AlexCE, counting down from 43 to 0, and restarts by itself (<em>"RAM Cleared"</em>). Don\'t touch it meanwhile.'
+    : 'On the calculator, press <kbd>enter</kbd> to start INST, then <kbd>enter</kbd> again to install. It counts down from 43 to 0. ' +
       'At <em>"Success! Will now reset"</em>, press <kbd>enter</kbd>, then <kbd>mode</kbd>.');
 }
 
@@ -372,7 +372,7 @@ function finished() {
   waitingReset = false;
   mark('finish', 'done');
   $('btn-connect').disabled = busy;
-  say('st-finish', '<span class="ok">The calculator restarted.</span> When it shows <em>"RAM Cleared"</em>, FlowCE is installed: press <kbd>apps</kbd> → <strong>FlowCE</strong>.');
+  say('st-finish', '<span class="ok">The calculator restarted.</span> When it shows <em>"RAM Cleared"</em>, AlexCE is installed: press <kbd>apps</kbd> → <strong>AlexCE</strong>.');
 }
 
 function init() {

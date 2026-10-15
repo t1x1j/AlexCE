@@ -60,9 +60,9 @@ CXXFLAGS = -std=c++14 -fno-rtti -fno-threadsafe-statics -Wall -Wextra -Oz -Iustl
 %ui_font.c.bc %ui_gfx.c.bc: CFLAGS := $(subst -Oz,-O2,$(CFLAGS))
 
 CPP_EXTENSION = cc
-APP_NAME = FlowCE
+APP_NAME = AlexCE
 APP_VERSION = 5.0.0.0000
-DESCRIPTION = FlowCE - calculus CAS - GNU GPL
+DESCRIPTION = AlexCE - calculus CAS - GNU GPL
 
 EXTRA_LDFLAGS = -e 9999
 ALLOCATOR = CUSTOM
