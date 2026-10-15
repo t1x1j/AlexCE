@@ -5,3 +5,26 @@ diff(x^3-x^2,x) :: Difference rule, Power rule, Power rule
 diff(7,x) :: Constant rule
 diff(3x+2,x) :: Linear function
 diff(t^4+t,t) :: Sum rule, Power rule
+diff(x^2*sin(3x),x) :: Product rule, Power rule, Chain rule
+diff(sin(x^2),x) :: Chain rule, Power rule
+diff(e^x/x,x) :: Quotient rule, Derivative of exp
+diff(5/x^2,x) :: Reciprocal rule, Power rule
+diff(ln(cos(x)),x) :: Chain rule, Derivative of cos
+diff(sqrt(x^2+1),x) :: Chain rule, Sum rule, Power rule
+diff(sec(x)*tan(x),x) :: Product rule, Derivative of sec, Derivative of tan
+diff(asin(2x),x) :: Chain rule
+diff(atan(x^2),x) :: Chain rule, Power rule
+diff(2^x*cos(x),x) :: Product rule, Exponential rule, Derivative of cos
+diff(x^x,x) :: Logarithmic differentiation, Product rule, Derivative of ln
+diff((x^2+1)^5,x) :: Chain rule, Sum rule, Power rule
+diff(e^(3x)*ln(x),x) :: Product rule, Chain rule, Derivative of ln
+diff(x*e^x*sin(x),x) :: Product rule, Product rule, Derivative of exp, Derivative of sin
+diff(cot(x)+csc(x),x) :: Sum rule, Derivative of cot, Derivative of csc
+diff(acos(x)-log10(x),x) :: Difference rule, Derivative of acos, Derivative of log10
+diff(abs(x^2-4),x) :: Chain rule, Difference rule, Power rule
+diff(3x^2,x,2) :: Constant multiple rule, Power rule, Simplify, Differentiate again, Linear function
+diff(sin(x),x,3) :: Derivative of sin, Differentiate again, Derivative of cos, Differentiate again, Constant multiple rule, Derivative of sin
+diff(t^2*sin(t),t) :: Product rule, Power rule, Derivative of sin
+diff(x*x*x*x*x*sin(x),x) :: Product rule
+diff(f(x),x) :: NONE
+diff(floor(x),x) :: NONE
