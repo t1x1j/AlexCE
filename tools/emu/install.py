@@ -19,6 +19,11 @@ if not apps:
 e = Emu(rom=ROM, shotdir=shots)
 try:
     e.run(3000); e.key('clear'); e.run(500)
+    # Erase the archive first, as the web installer does (site/installer.js erase()): a ROM dumped
+    # from a calculator in use keeps its archive, which can leave too little room for FlowCE.
+    for k in ('2nd', 'mode', 'clear', '2nd', 'add', '7', 'right', '3'):         # quit, MEM, Reset, ARCHIVE, Both
+        e.key(k); e.run(800)
+    e.key('2'); e.run(20000); e.key('clear'); e.run(500)                         # Reset
     e.send(f'{KB}/emu/arTIfiCE.8xp', 'ram')
     e.send(f'{KB}/src/app_tools/INST.8xp', 'ram')
     for a in apps:
