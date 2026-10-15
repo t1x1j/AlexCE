@@ -54,7 +54,18 @@ static int choice_line(const char * c, int y, int draw, int bg) {
 static int item(const char * label, const char * choice, const char * expr, int y, int draw, int bg) {
   int h = 4;
   if (*label) { if (draw) ui_draw_text(&ui_tb10, label, -1, MX, y + h + 10, ramp(UC_ACC, bg), 0); h += 14; }
-  if (*choice) h += choice_line(choice, y + h, draw, bg);
+  if (*choice) { // one line per \n (parts: u, dv, then du, v)
+    char line[160];
+    for (const char * p = choice;;) {
+      const char * q = strchr(p, '\n');
+      int n = q ? q - p : strlen(p);
+      if (n > (int)sizeof(line) - 1) n = sizeof(line) - 1;
+      memcpy(line, p, n); line[n] = 0;
+      h += choice_line(line, y + h, draw, bg);
+      if (!q) break;
+      p = q + 1;
+    }
+  }
   mi_layout L;
   int lv = ui_math_fit(expr, strlen(expr), -1, MAXLV, MW, EHMAX, MI_F_IMPLDOT, L);
   if (draw && y + h + L.asc + L.desc <= SBOT) ui_math_draw(L, expr, lv, MX, y + h + L.asc, 0, UC_INK, bg, UC_ACC);

@@ -384,6 +384,63 @@ static bool usub(const gen & f,const gen & v,gen & r,string & label,string & cho
   return false;
 }
 
+static bool poly_v(const gen & g,const gen & v){ // a polynomial in v (x, x^2+1, 3x^3)
+  const gen e=eval(g,1,contextptr);
+  const vecteur l=lvar(e);
+  return l.size()==1 && l.front()==v && free_of(_denom(e,contextptr),v);
+}
+// LIATE: the factor to differentiate (u) is the first of: ln, inverse trig, a polynomial, trig, exponential
+static int liate(const gen & g,const gen & v){
+  if (contains(g,at_ln) || contains(g,at_log10)) return 0;
+  if (contains(g,at_asin) || contains(g,at_acos) || contains(g,at_atan)) return 1;
+  if (poly_v(g,v)) return 2;
+  if (contains(g,at_sin) || contains(g,at_cos) || contains(g,at_tan) || contains(g,at_sec) || contains(g,at_csc) || contains(g,at_cot)) return 3;
+  return 4;
+}
+static int parts_count; // integrations by parts in this problem (at most 4)
+// integration by parts: f = u*dv (u by LIATE, dv the rest, v its antiderivative by giac),
+// u*v - integral of v*du
+static bool parts(const gen & f,const gen & v,gen & r,string & label,string & choice){
+  if (parts_count>=4) return false;
+  const vecteur fs=is_op(f,at_prod)?args(f):vecteur(1,f);
+  if (fs.size()==1 && liate(f,v)>1) return false; // alone: ln, inverse trig (dv = dx)
+  unsigned k=0;
+  for (unsigned i=1;i<fs.size();++i)
+    if (liate(fs[i],v)<liate(fs[k],v)) k=i;
+  vecteur rest;
+  for (unsigned i=0;i<fs.size();++i)
+    if (i!=k) rest.push_back(fs[i]);
+  const gen U=fs[k],dV=rest.empty()?gen(1):prod(rest);
+  const gen V=normal(_integrate(makesequence(eval(dV,1,contextptr),v),contextptr),contextptr);
+  if (interrupted || is_undef(V) || V.type==_STRNG || contains(V,at_integrate)) return false;
+  const gen dU=normal(derive(eval(U,1,contextptr),v,contextptr),contextptr),d=dvar(v);
+  ++parts_count;
+  r=sym2(at_plus,mul(U,V),neg(inode(gen(normal(mul(V,dU),contextptr).print(contextptr),contextptr),v)));
+  label="Integration by parts";
+  choice=m("u = "+txt(U))+", "+m("dv = "+txt(mul(dV,d)))+"\n"+m("du = "+txt(mul(dU,d)))+", "+m("v = "+txt(V));
+  return true;
+}
+// the integral of f appearing again in E (by parts twice: e^x sin x): E = A + k*I, so I = A/(1-k)
+static bool again(gen & E,const gen & f,const gen & v,string & label,string & choice){
+  const vecteur nodes=lop(E,at_integrate);
+  if (nodes.size()!=1) return false;
+  const gen c=ratnormal(eval(args(nodes[0])[0],1,contextptr)/eval(f,1,contextptr),contextptr);
+  if (!free_of(c,v) || is_one(c) || is_zero(c)) return false;
+  const gen T("steps_I",contextptr);
+  const gen P=eval(plain_minus(quotesubst(E,nodes[0],c*T,contextptr)),1,contextptr);
+  const gen k=normal(derive(P,T,contextptr),contextptr);
+  if (!free_of(k,T) || !free_of(k,v) || is_one(k)) return false;
+  const gen A=normal(subst(P,T,0,false,contextptr),contextptr);
+  E=normal(A/(1-k),contextptr);
+  label="The integral appears again";
+  // I = A - I/4, so I = (A)/(5/4): k*I written as on paper (-I, -I/4, 2*I)
+  const gen I=identificateur("I"),c2=eval(-k,1,contextptr);
+  const gen kI=!is_strictly_positive(c2,contextptr)?mul(k,I):
+    neg(c2.type==_FRAC?sym2(at_division,mul(c2._FRACptr->num,I),c2._FRACptr->den):mul(c2,I));
+  choice=m("I = "+txt(sym2(at_plus,A,kI)))+"\nso "+m("I = "+txt(sym2(at_division,A,den(eval(1-k,1,contextptr)))));
+  return true;
+}
+
 // one rule applied to the integral of f in v: its result r (with integrate nodes left for the
 // rest), the rule's name, what was chosen, and steps to show before this one (pre: a
 // u-substitution's integral in u); false: no rule
@@ -453,7 +510,7 @@ static bool irule(const gen & f,const gen & v,gen & r,string & label,string & ch
   }
   r=table_int(f,v,label);
   if (!is_zero(r)) return true;
-  return usub(f,v,r,label,choice,pre);
+  return usub(f,v,r,label,choice,pre) || parts(f,v,r,label,choice);
 }
 
 // the first integrate(.,v) node of E (leftmost, outermost) replaced by its rule: 1 done, 0 no node
@@ -494,6 +551,12 @@ static int itrace(gen & E,const gen & f,const gen & v,vector<step> & out){
     for (unsigned i=0;i<pre.size();++i) out.push_back(pre[i]);
     step s={label,choice,txt(E)};
     out.push_back(s);
+    string l2,c2;
+    if (again(E,f,v,l2,c2)){
+      if (!anti(E,f,v)) return interrupted?STEPS_STOPPED:STEPS_NONE;
+      step t={l2,c2,txt(E)};
+      out.push_back(t);
+    }
   }
 }
 
@@ -536,7 +599,7 @@ int steps_applicable(const char * s){
 
 int steps_build(const char * input,const string & answer,string & problem,vector<step> & out){
   out.clear();
-  usub_depth=0;
+  usub_depth=parts_count=0;
   problem.clear();
   const int S=strlen(input),cap=2*S+32>256?2*S+32:256;
   char * buf=(char *)malloc(cap);

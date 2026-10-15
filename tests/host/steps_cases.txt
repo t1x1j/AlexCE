@@ -59,6 +59,15 @@ integrate(x*e^(x^2),x) :: u-substitution, Integral of exp, Substitute back
 integrate((x^2+1)^5*x,x) :: u-substitution, Power rule, Substitute back
 integrate(sin(x)*cos(x)^2,x) :: u-substitution, Power rule, Substitute back
 integrate(u*cos(u^2),u) :: u-substitution, Integral of cos, Substitute back :: Let `w = u^2`
+integrate(x*e^x,x) :: Integration by parts, Integral of exp :: u = x
+integrate(x^2*e^x,x) :: Integration by parts, Integration by parts, Integral of exp
+integrate(x*ln(x),x) :: Integration by parts, Power rule :: u = ln(x)
+integrate(ln(x),x) :: Integration by parts, Constant rule
+integrate(atan(x),x) :: Integration by parts, u-substitution, Substitute back
+integrate(x*sin(x),x,0,pi) :: Integration by parts, Integral of cos, Evaluate at the bounds
+integrate(e^x*sin(x),x) :: Integration by parts, Integration by parts, The integral appears again :: -I` :: )/2`
+integrate(e^(2x)*cos(x),x) :: Integration by parts, Integration by parts, The integral appears again :: -I/4` :: )/(5/4)`
+integrate(e^x/x,x) :: NONE
 # a stored variable: the problem shows its name, so steps on it would mislead (purged after)
 y:=3x+1 :: NONE
 diff(y,x,2) :: NONE

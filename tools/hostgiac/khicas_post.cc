@@ -123,7 +123,7 @@ std::string khicas_steps(const char * s){
     out+="\n  ["+v[i].label+"]";
     if (!v[i].choice.empty()){ // math between backquotes
       std::string c=v[i].choice;
-      for (size_t j=0;j<c.size();++j) if (c[j]=='') c[j]='`';
+      for (size_t j=0;j<c.size();++j) if (c[j]=='\x01') c[j]='`'; else if (c[j]=='\n') c[j]='/';
       out+=" "+c;
     }
     out+=" :: "+v[i].expr;
