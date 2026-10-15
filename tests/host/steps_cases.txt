@@ -1,0 +1,7 @@
+# Steps of derivatives (steps.cc): the labels expected, in order (others, e.g. a final Simplify, may follow)
+diff(x^3+5x,x) :: Sum rule, Power rule
+diff(4x^5,x) :: Constant multiple rule, Power rule
+diff(x^3-x^2,x) :: Difference rule, Power rule, Power rule
+diff(7,x) :: Constant rule
+diff(3x+2,x) :: Linear function
+diff(t^4+t,t) :: Sum rule, Power rule

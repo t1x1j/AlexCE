@@ -12,6 +12,7 @@
 //   -p       print each result (first round)
 //   -T       with -p: each result followed by "  @@" and its time in ms (wall clock)
 //   -F       with -k: the answer, then its F4 forms as the calculator cycles them (answer.cc)
+//   -S       with -k: the answer, then its worked steps (src/steps.cc), one "  [rule] choice :: expr" line each
 //   -m       print the heap growth of every evaluation (bytes and blocks still allocated
 //            after it, everything included: leaks and anything kept by giac)
 //   -t K     trace round K (>=2): group the blocks allocated during each evaluation of round K
@@ -120,6 +121,7 @@ static void report_retained(const char * label){
 extern "C" bool khicas_implicit_mult(char * line,int maxlen); // tiinput_glue.cc
 std::string khicas_do_run(const char * s) __attribute__((weak)); // khicas_post.cc (KDISPLAY=1)
 std::string khicas_forms(const char * s) __attribute__((weak)); // -F: the answer and its F4 forms
+std::string khicas_steps(const char * s) __attribute__((weak)); // -S: the answer and its steps
 static std::string eval_one(const char * s,bool autosimp,bool prepass){
   ctrl_c=kbd_interrupted=interrupted=false; // do_eval
   std::string text(s);
@@ -141,7 +143,7 @@ static std::string eval_one(const char * s,bool autosimp,bool prepass){
 
 int main(int argc,char ** argv){
   int N=1,trace_round=0;
-  bool autosimp=false,print=false,measure=false,prepass=false,dorun=false,timing=false,forms=false;
+  bool autosimp=false,print=false,measure=false,prepass=false,dorun=false,timing=false,forms=false,steps=false;
   const char * file=0;
   static const char * exprs[8192]; int ne=0;
   for (int i=1;i<argc;++i){
@@ -152,6 +154,7 @@ int main(int argc,char ** argv){
     else if (!strcmp(argv[i],"-p")) print=true;
     else if (!strcmp(argv[i],"-T")) timing=true;
     else if (!strcmp(argv[i],"-F")) forms=true;
+    else if (!strcmp(argv[i],"-S")) steps=true;
     else if (!strcmp(argv[i],"-i")) prepass=true;
     else if (!strcmp(argv[i],"-k")){
       if (!khicas_do_run){ fprintf(stderr,"-k: built without kdisplay.cc (KDISPLAY=0)\n"); return 2; }
@@ -192,7 +195,7 @@ int main(int argc,char ** argv){
       if (tr) track_start();
       struct timespec t0,t1;
       clock_gettime(CLOCK_MONOTONIC,&t0);
-      const std::string res=dorun?(forms?khicas_forms(exprs[k]):khicas_do_run(exprs[k])):eval_one(exprs[k],autosimp,prepass);
+      const std::string res=dorun?(forms?khicas_forms(exprs[k]):steps?khicas_steps(exprs[k]):khicas_do_run(exprs[k])):eval_one(exprs[k],autosimp,prepass);
       clock_gettime(CLOCK_MONOTONIC,&t1);
       if (print && r==1){
         if (timing)
