@@ -294,44 +294,30 @@ static bool anti(const gen & E,const gen & f,const gen & v){
   return equal(eval(derive(plain_minus(E),v,contextptr),1,contextptr),eval(f,1,contextptr));
 }
 
-// the textbook table for an argument that is v itself; 0 if f is not in it
+// the textbook table, as text (built as trees in code, it took KBs: answer.cc's table0 too): the
+// label, the integrand and its antiderivative in x, x then replaced by v. The integrands are
+// compared as typed (sec(x)^2), the last two up to their order (1+x^2, x^2+1)
+static const char * const TABLE[]={
+  "exp","exp(x)","exp(x)", "sin","sin(x)","-cos(x)", "cos","cos(x)","sin(x)",
+  "tan","tan(x)","-ln(abs(cos(x)))", "cot","cot(x)","ln(abs(sin(x)))",
+  "sec","sec(x)","ln(abs(sec(x)+tan(x)))", "csc","csc(x)","-ln(abs(csc(x)+cot(x)))",
+  "sec^2","sec(x)^2","tan(x)", "csc^2","csc(x)^2","-cot(x)",
+  "sec*tan","sec(x)*tan(x)","sec(x)", "sec*tan","tan(x)*sec(x)","sec(x)",
+  "csc*cot","csc(x)*cot(x)","-csc(x)", "csc*cot","cot(x)*csc(x)","-csc(x)",
+  "1/(1+x^2)","1/(1+x^2)","atan(x)", "1/sqrt(1-x^2)","1/sqrt(1-x^2)","asin(x)", 0};
 static gen table_int(const gen & f,const gen & v,string & label){
   if (f.type!=_SYMB) return 0;
-  const unary_function_ptr & s=f._SYMBptr->sommet;
-  const vecteur a=args(f);
-  gen r;
-  if (a.size()==1 && a[0]==v){
-    if (s==at_exp) r=f;
-    else if (s==at_sin) r=neg(sym1(at_cos,v));
-    else if (s==at_cos) r=sym1(at_sin,v);
-    else if (s==at_tan) r=neg(sym1(at_ln,sym1(at_abs,sym1(at_cos,v))));
-    else if (s==at_cot) r=sym1(at_ln,sym1(at_abs,sym1(at_sin,v)));
-    else if (s==at_sec) r=sym1(at_ln,sym1(at_abs,sym2(at_plus,sym1(at_sec,v),sym1(at_tan,v))));
-    else if (s==at_csc) r=neg(sym1(at_ln,sym1(at_abs,sym2(at_plus,sym1(at_csc,v),sym1(at_cot,v)))));
-    if (!is_zero(r)){ label=string("Integral of ")+s.ptr()->s; return r; }
+  if (is_op(f,at_pow) && args(f)[1]==v && free_of(args(f)[0],v)){ // a^v/ln(a)
+    label="Exponential rule";
+    return sym2(at_division,f,sym1(at_ln,args(f)[0]));
   }
-  if (s==at_pow && a.size()==2){
-    if (a[1]==v && free_of(a[0],v)){ // a^v/ln(a)
-      label="Exponential rule";
-      return sym2(at_division,f,sym1(at_ln,a[0]));
+  const gen x("x",contextptr);
+  for (int k=0;TABLE[k];k+=3){
+    const gen p=quotesubst(gen(TABLE[k+1],contextptr),x,v,contextptr);
+    if (f==p || (TABLE[k][0]=='1' && is_op(f,at_division) && equal(f,p))){
+      label=string("Integral of ")+TABLE[k];
+      return quotesubst(gen(TABLE[k+2],contextptr),x,v,contextptr);
     }
-    if (a[1]==2 && (is_op(a[0],at_sec) || is_op(a[0],at_csc)) && args(a[0])[0]==v){
-      const bool sec=is_op(a[0],at_sec);
-      label=sec?"Integral of sec^2":"Integral of csc^2";
-      return sec?sym1(at_tan,v):neg(sym1(at_cot,v));
-    }
-  }
-  if (s==at_prod && a.size()==2){ // sec(v)*tan(v), csc(v)*cot(v)
-    for (int k=0;k<2;++k){
-      const gen & p=a[k], & q=a[1-k];
-      if (is_op(p,at_sec) && is_op(q,at_tan) && args(p)[0]==v && args(q)[0]==v){ label="Integral of sec*tan"; return sym1(at_sec,v); }
-      if (is_op(p,at_csc) && is_op(q,at_cot) && args(p)[0]==v && args(q)[0]==v){ label="Integral of csc*cot"; return neg(sym1(at_csc,v)); }
-    }
-  }
-  if ((s==at_division || s==at_pow) && !contains(f,at_sin) && !contains(f,at_cos) && !contains(f,at_exp) && !contains(f,at_ln)){
-    const gen v2=sym2(at_pow,v,2);
-    if (equal(f,sym2(at_division,1,sym2(at_plus,1,v2)))){ label="Integral of 1/(1+x^2)"; return sym1(at_atan,v); }
-    if (equal(f,sym2(at_division,1,sym1(at_sqrt,sym2(at_binary_minus,1,v2))))){ label="Integral of 1/sqrt(1-x^2)"; return sym1(at_asin,v); }
   }
   return 0;
 }
