@@ -627,6 +627,7 @@ void console_cycle_form(int l){
     statuslinemsg((std::string("form: ")+(form_idx?name:"original")+"    F4: next").c_str());
 }
 
+#ifndef NO_STEPS
 // 2nd F4 on a derivative's result: its worked steps (steps.cc) on the Steps screen
 // (focus_steps.cc). As for the forms: giac's notes are not shown, ON or a full memory stop it.
 void console_show_steps(int in,int out){
@@ -650,6 +651,7 @@ void console_show_steps(int in,int out){
   statuslinemsg("");
   focus_steps(problem,v,r,oom);
 }
+#endif // NO_STEPS
 #endif
 
 // f(x):=x^2+1 on one line (also typed f(x)=x^2+1): a math function, defined without giac's

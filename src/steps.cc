@@ -3,6 +3,7 @@
 // time, outermost and leftmost first: each expansion is one step. Derivatives a reader sees at
 // once (a constant, x, a linear ax+b) are written directly. After each step the expression is
 // evaluated and compared with giac's derivative: a step that does not check discards the trace.
+#ifndef NO_STEPS // (UNITS=1: units and the steps do not both fit, makefile)
 #include <string.h>
 #include <stdlib.h>
 #include <time.h> // (before giac: first.h defines a clock macro)
@@ -342,3 +343,4 @@ int steps_build(const char * input,const string & answer,string & problem,vector
   }
   return STEPS_OK;
 }
+#endif // NO_STEPS

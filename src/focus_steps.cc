@@ -1,6 +1,7 @@
 // focus_steps.cc - the Steps screen of the Focus interface (2nd F4 on a derivative's result,
 // main.cc console_show_steps): the problem, then each step (its rule in bold, what was chosen,
 // the expression in 2D), scrolled one step at a time with up and down; clear goes back.
+#ifndef NO_STEPS // (UNITS=1: units and the steps do not both fit, makefile)
 #include <string.h>
 #include <time.h>              // (before giac: first.h defines a clock macro)
 #include "steps.h"             // giac first, as main.cc: console.h then maps std to ustl
@@ -101,3 +102,4 @@ void focus_steps(const std::string & problem, const std::vector<step> & v, int s
   focus_status_label(0);
   focus_invalidate(); // the console repaints everything
 }
+#endif // NO_STEPS

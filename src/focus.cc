@@ -910,8 +910,12 @@ int focus_input_line(int out) {
 }
 // 2nd F4 shows steps: the result F4 would cycle comes from a derivative
 int focus_steps_key() {
+#ifdef NO_STEPS
+  return 0;
+#else
   int o = focus_result_line(), i = o >= 0 ? focus_input_line(o) : -1;
   return i >= 0 && steps_applicable((const char *)Line[i].str);
+#endif
 }
 // History by calculations, as the prototype: the console line to select for dir 0 up, 1 down,
 // 2 left (the input), 3 right (the result); Last_Line for the edit line. Up and down keep the
