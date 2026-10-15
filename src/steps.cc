@@ -295,7 +295,7 @@ int steps_build(const char * input,const string & answer,string & problem,vector
   const int n=a.size()==3?(a[2].type==_INT_?a[2].val:0):1;
   if (n<1 || n>3) return STEPS_NONE;
   problem=txt(in);
-  gen f=a[0];
+  gen f=a[0],last; // last: the derivative found, evaluated (the answer must equal it)
   // a stored variable whose value has x in it (y:=3x+1, then diff(y,x)): the steps would show y
   // and treat it as a constant
   const vecteur ids=lidnt(f);
@@ -327,7 +327,8 @@ int steps_build(const char * input,const string & answer,string & problem,vector
     }
     // no diff left: the derivative (normal keeps sin, cos; factor keeps (x+1)^2), parsed again from
     // its text, unevaluated as the input: evaluated, a/b is a*inv(b), which no rule differentiates
-    f=gen(factor(normal(eval(g,1,contextptr),contextptr),false,contextptr).print(contextptr),contextptr);
+    last=normal(eval(g,1,contextptr),contextptr);
+    f=gen(factor(last,false,contextptr).print(contextptr),contextptr);
     if (k<n){
       step s={"Simplify","",txt(f)};
       out.push_back(s);
@@ -336,7 +337,7 @@ int steps_build(const char * input,const string & answer,string & problem,vector
   // the last step is the answer as FlowCE shows it, which must be what the steps found
   const gen A=eval(gen(answer,contextptr),1,contextptr);
   if (interrupted){ out.clear(); return STEPS_STOPPED; }
-  if (!equal(f,A)){ out.clear(); return interrupted?STEPS_STOPPED:STEPS_NONE; }
+  if (!equal(last,A)){ out.clear(); return interrupted?STEPS_STOPPED:STEPS_NONE; } // (f: parsed, its a-b unevaluated)
   if (out.empty() || out.back().expr!=answer){
     step s={"Simplify","",answer};
     out.push_back(s);

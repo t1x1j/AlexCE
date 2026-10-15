@@ -35,6 +35,8 @@ diff(sqrt(x),x,2) :: Square root rule, Differentiate again
 diff(1/x,x,2) :: Reciprocal rule, Differentiate again
 diff(e*x^2,x) :: Constant multiple rule, Power rule
 diff(pi*sin(x),x) :: Constant multiple rule, Derivative of sin
+diff(x^2*e^(3x)/sin(x),x) :: Quotient rule, Product rule, Power rule, Chain rule, Derivative of sin
+diff((x^2+1)*sin(x)-x*cos(x),x) :: Difference rule, Product rule, Product rule
 # a stored variable: the problem shows its name, so steps on it would mislead (purged after)
 y:=3x+1 :: NONE
 diff(y,x,2) :: NONE
