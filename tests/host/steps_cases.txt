@@ -82,7 +82,7 @@ integrate(tan(x)^3,x) :: Pythagorean identity, Difference rule, u-substitution, 
 integrate(tan(x)^2,x) :: Pythagorean identity, Difference rule, Integral of sec^2, Constant rule
 integrate(sec(x)^3,x) :: Integral of sec^3
 integrate(sin(x^2)^3,x) :: NONE
-integrate(sqrt(9-x^2),x) :: Trig substitution, Power-reducing identity, Back-substitute :: `x = 3*sin(t)`
+integrate(sqrt(9-x^2),x) :: Trig substitution, Power-reducing identity, Back-substitute :: `x = 3*sin(t)` :: x*sqrt(9-x^2)/2
 integrate(1/(x^2*sqrt(x^2+4)),x) :: Trig substitution, Back-substitute :: `x = 2*tan(t)`
 integrate(sqrt(x^2-4)/x,x) :: Trig substitution, Back-substitute :: `x = 2*sec(t)`
 integrate(x^3/sqrt(4-x^2),x) :: Trig substitution, Back-substitute
@@ -114,3 +114,11 @@ diff(y,x,2) :: NONE
 diff(x*y,x) :: NONE
 integrate(y,x) :: NONE
 purge(y) :: NONE
+# display: no 1*, one identity in the problem's variable, constants combined, (sum) integrands, w when the variable is u
+integrate(sqrt(1-x^2),x) :: Trig substitution :: `x = sin(t)`, `dx = cos(t)*dt` :: `cos(t)^2 = (1+cos(2*t))/2` :: t/2+sin(2*t)/4
+integrate((2x+3)/(x^2+x+1),x) :: Split the numerator :: `2*x+3 = (2*x+1) + 2` :: `a = sqrt(3)/2`
+integrate(1/((x+1)*(x^2+4)),x) :: Partial fractions, Split the numerator :: `-x+1 = -1/2*(2*x) + 1`
+integrate(1/sqrt(x^2-9),x) :: Back-substitute :: ln(abs((x+sqrt(x^2-9))/3))
+diff(sin(u^2),u) :: Chain rule :: outer `sin(w)`, inner `w = u^2`
+integrate(sin(x)^3,x) :: Pythagorean identity :: integrate((u^2-1),u)
+integrate(sin(x)^2,x) :: Power-reducing identity :: `sin(x)^2 = (1-cos(2*x))/2` :: x/2-sin(2*x)/4

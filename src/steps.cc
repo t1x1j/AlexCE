@@ -48,21 +48,26 @@ static gen add(const vecteur & v){
 static gen prod(const vecteur & v){ return v.size()==1?v[0]:symbolic(at_prod,gen(v,_SEQ__VECT)); }
 static gen pw(const gen & a,const gen & n){ return is_one(n)?a:is_zero(n)?gen(1):sym2(at_pow,a,n); }
 // diff(u,x) as diff((u),x), drawn d/dx(u): d/dx x^2 sin(3x) reads as the derivative of the
-// product whether it is or not (d/dx(x^2) sin(3x) is not)
-static void paren_diff(string & s){
-  for (size_t p=s.find("diff(");p!=string::npos;p=s.find("diff(",p+5)){
-    const size_t a=p+5;
+// product whether it is or not (d/dx(x^2) sin(3x) is not); integrate(a+b,x) as integrate((a+b),x)
+// (a sum only), drawn as the integral of (a+b)
+static void paren_arg(string & s,const char * fn,bool sum){
+  const size_t L=strlen(fn);
+  for (size_t p=s.find(fn);p!=string::npos;p=s.find(fn,p+L)){
+    const size_t a=p+L;
     size_t i=a;
     int depth=0;
-    bool wrapped=s[a]=='('; // already (u): stays wrapped while its parenthesis is open
+    bool wrapped=s[a]=='(',has=!sum; // already (u): stays wrapped while its parenthesis is open
     for (;i<s.size();++i){
       const char c=s[i];
       if (c=='(') ++depth;
       else if (c==')'){ if (!depth) break; --depth; }
       else if (!depth && c==',') break;
-      else if (!depth && i>a) wrapped=false;
+      else if (!depth && i>a){
+        wrapped=false;
+        if ((c=='+' || c=='-') && !strchr("^*/(e",s[i-1])) has=true;
+      }
     }
-    if (!wrapped && i<s.size() && s[i]==','){
+    if (!wrapped && has && i<s.size() && s[i]==','){
       s.insert(i,")");
       s.insert(a,"(");
     }
@@ -98,11 +103,41 @@ static void unwrap_neg_diff(string & s){
     }
   }
 }
+// constants put together for reading: a/b/c as a/(b*c), 1/q*(a/b) as a/(q*b) (multiplied out
+// when both are numbers)
+static gen tmul(const gen & a,const gen & b){ return a.type==_INT_ && b.type==_INT_?a*b:sym2(at_prod,a,b); }
+static gen tidy(const gen & g){
+  if (g.type!=_SYMB) return g;
+  const gen & f=g._SYMBptr->feuille;
+  gen n;
+  if (f.type==_VECT){
+    vecteur v=*f._VECTptr;
+    for (unsigned i=0;i<v.size();++i) v[i]=tidy(v[i]);
+    n=gen(v,f.subtype);
+  }
+  else n=tidy(f);
+  const unary_function_ptr & s=g._SYMBptr->sommet;
+  if (n.type==_VECT && n._VECTptr->size()==2){
+    const gen a=n._VECTptr->front(),b=n._VECTptr->back();
+    if (s==at_division && is_op(a,at_division)) return sym2(at_division,args(a)[0],tmul(args(a)[1],b));
+    if (s==at_prod){
+      for (int k=0;k<2;++k){
+        const gen & c=k?b:a, & d=k?a:b;
+        gen q;
+        if (c.type==_FRAC && is_one(c._FRACptr->num)) q=c._FRACptr->den;
+        else if (is_op(c,at_division) && is_one(args(c)[0]) && args(c)[1].type==_INT_) q=args(c)[1];
+        if (!is_zero(q) && is_op(d,at_division)) return sym2(at_division,args(d)[0],tmul(q,args(d)[1]));
+      }
+    }
+  }
+  return symbolic(s,n);
+}
 // g as FlowCE prints answers (the textbook notation of answer.cc)
 static string txt(const gen & g){
-  string s=plain_minus(g).print(contextptr);
+  string s=plain_minus(tidy(g)).print(contextptr);
   textbook(s);
-  paren_diff(s);
+  paren_arg(s,"diff(",false);
+  paren_arg(s,"integrate(",true);
   unwrap_neg_diff(s);
   return s;
 }
@@ -121,6 +156,7 @@ static gen D(const gen & u,const gen & x){
 }
 
 // one rule applied to d/dx u: its result r, the rule's name and what was chosen; false: no rule
+static string uname(const gen & f); // (below)
 static bool rule(const gen & u,const gen & x,gen & r,string & label,string & choice){
   choice.clear();
   if (u.type!=_SYMB) return false;
@@ -185,7 +221,7 @@ static bool rule(const gen & u,const gen & x,gen & r,string & label,string & cho
       }
       r=mul(mul(e,pw(b,e1)),D(b,x));
       label="Chain rule";
-      choice="outer "+m("u^"+txt(e))+", inner "+m("u = "+txt(b));
+      choice="outer "+m(uname(u)+"^"+txt(e))+", inner "+m(uname(u)+" = "+txt(b));
       return true;
     }
     if (free_of(b,x)){ // (a^u)'=a^u*ln(a)*u'
@@ -193,7 +229,7 @@ static bool rule(const gen & u,const gen & x,gen & r,string & label,string & cho
       if (e==x) label="Exponential rule";
       else {
         label="Chain rule";
-        choice="outer "+m(txt(b)+"^u")+", inner "+m("u = "+txt(e));
+        choice="outer "+m(txt(b)+"^"+uname(u))+", inner "+m(uname(u)+" = "+txt(e));
       }
       return true;
     }
@@ -210,7 +246,7 @@ static bool rule(const gen & u,const gen & x,gen & r,string & label,string & cho
     if (b==x) label="Square root rule";
     else {
       label="Chain rule";
-      choice="outer "+m("sqrt(u)")+", inner "+m("u = "+txt(b));
+      choice="outer "+m("sqrt("+uname(u)+")")+", inner "+m(uname(u)+" = "+txt(b));
     }
     return true;
   }
@@ -236,7 +272,7 @@ static bool rule(const gen & u,const gen & x,gen & r,string & label,string & cho
   if (b==x) label="Derivative of "+name;
   else {
     label="Chain rule";
-    choice="outer "+m(name+"(u)")+", inner "+m("u = "+txt(b));
+    choice="outer "+m(name+"("+uname(u)+")")+", inner "+m(uname(u)+" = "+txt(b));
   }
   return true;
 }
@@ -517,7 +553,7 @@ static __attribute__((noinline)) bool pfrac(const gen & f,const gen & v,gen & r,
     choice=m(txt(f)+" = "+txt(Q)+(is_zero(R)?string():" + "+txt(RD)));
     return true;
   }
-  const gen P=gen(_partfrac(makesequence(e,v),contextptr).print(contextptr),contextptr);
+  const gen P=tidy(gen(_partfrac(makesequence(e,v),contextptr).print(contextptr),contextptr));
   if (!is_op(P,at_plus) && !is_op(P,at_binary_minus)) return false;
   r=inode(P,v);
   label="Partial fractions";
@@ -548,7 +584,7 @@ static __attribute__((noinline)) bool split_num(const gen & f,const gen & v,gen 
   r=is_zero(C2)?I1:sym2(at_plus,I1,inode(sym2(at_division,C2,Q),v));
   label="Split the numerator";
   const bool mi=is_strictly_positive(-C2,contextptr);
-  choice=m(txt(N)+" = "+txt(k)+"*("+txt(dQ)+")"+(is_zero(C2)?string():(mi?" - ":" + ")+txt(mi?-C2:C2)));
+  choice=m(txt(N)+" = "+(is_one(k)?string("("):txt(k)+"*(")+txt(dQ)+")"+(is_zero(C2)?string():(mi?" - ":" + ")+txt(mi?-C2:C2)));
   return true;
 }
 
@@ -577,7 +613,9 @@ static __attribute__((noinline)) bool trig_sub(const gen & f,const gen & v,gen &
                                  "a*sec(t)","a*sec(t)*tan(t)","a*tan(t)","sqrt(x^2-a^2)/x","a/x","sqrt(x^2-a^2)/a","atan(sqrt(x^2-a^2)/a)"};
   gen g[7];
   for (int i=0;i<7;++i){
-    g[i]=quotesubst(quotesubst(quotesubst(gen(T[7*kind+i],contextptr),ga,a,contextptr),gt,t,contextptr),gx,v,contextptr);
+    const char * tp=T[7*kind+i];
+    if (i<3 && is_one(a)) tp+=2; // ("a*sin(t)": sin(t))
+    g[i]=quotesubst(quotesubst(quotesubst(gen(tp,contextptr),ga,a,contextptr),gt,t,contextptr),gx,v,contextptr);
     if (i>2) g[i]=gen(eval(g[i],1,contextptr).print(contextptr),contextptr); // (sqrt(9-x^2), not sqrt(3^2-x^2))
   }
   const gen G0=normal(eval(quotesubst(quotesubst(f,roots[0],g[2],contextptr),v,g[0],contextptr)*g[1],1,contextptr),contextptr);
@@ -604,10 +642,30 @@ static __attribute__((noinline)) bool trig_sub(const gen & f,const gen & v,gen &
   // sin 2t = 2 sin t cos t first (texpand), sec, csc, cot by cos and sin, then the triangle, then t
   const gen S=sym1(at_sin,t),C=sym1(at_cos,t);
   gen F=_texpand(eval(Et,1,contextptr),contextptr);
-  F=subst(F,makevecteur(sym1(at_sec,t),sym1(at_csc,t),sym1(at_cot,t)),makevecteur(inv(C,contextptr),inv(S,contextptr),C/S),false,contextptr);
-  F=subst(F,makevecteur(S,C,sym1(at_tan,t)),makevecteur(g[3],g[4],g[5]),false,contextptr);
-  F=subst(F,t,g[6],false,contextptr);
-  r=gen(normal(eval(F,1,contextptr),contextptr).print(contextptr),contextptr);
+  // abs(g) set aside first (substituted, giac writes it sqrt(g^2) when it cannot tell the sign): F and
+  // each g substituted together, each g simplified alone, then put back in an abs
+  const vecteur ab=lop(F,at_abs);
+  vecteur all(1,F),ph;
+  if (ab.size()<10){
+    for (unsigned i=0;i<ab.size();++i){
+      ph.push_back(gen(string("steps_A")+char('0'+i),contextptr));
+      all.push_back(ab[i]._SYMBptr->feuille);
+    }
+    all[0]=subst(F,ab,ph,false,contextptr);
+  }
+  gen V(all);
+  V=subst(V,makevecteur(sym1(at_sec,t),sym1(at_csc,t),sym1(at_cot,t)),makevecteur(inv(C,contextptr),inv(S,contextptr),C/S),false,contextptr);
+  V=subst(V,makevecteur(S,C,sym1(at_tan,t)),makevecteur(g[3],g[4],g[5]),false,contextptr);
+  V=subst(V,t,g[6],false,contextptr);
+  if (V.type!=_VECT || V._VECTptr->size()!=all.size()) return false;
+  const vecteur & w=*V._VECTptr;
+  F=normal(eval(w[0],1,contextptr),contextptr);
+  for (unsigned i=0;i<ph.size();++i) F=quotesubst(F,ph[i],sym1(at_abs,normal(eval(w[i+1],1,contextptr),contextptr)),contextptr);
+  // the root as typed (sqrt(9-x^2), not sqrt(-x^2+9))
+  string fs=F.print(contextptr);
+  const string from="sqrt("+normal(R,contextptr).print(contextptr)+")",to=roots[0].print(contextptr);
+  for (size_t q=fs.find(from);q!=string::npos;q=fs.find(from,q+to.size())) fs.replace(q,from.size(),to);
+  r=gen(fs,contextptr);
   label="Back-substitute";
   choice=m(txt(S)+" = "+txt(g[3]))+", "+m(txt(C)+" = "+txt(g[4]))+"\n"+m(txt(t)+" = "+txt(g[6]));
   return true;
@@ -659,7 +717,9 @@ static __attribute__((noinline)) bool trig_rewrite(const gen & f,const gen & v,g
   if (M%2 || N%2) return false; // sin*cos^n, sin^n*cos: a u-substitution
   r=inode(gen(_tlin(eval(f,1,contextptr),contextptr).print(contextptr),contextptr),v);
   label="Power-reducing identity";
-  choice=m("sin(u)^2 = (1-cos(2*u))/2")+", "+m("cos(u)^2 = (1+cos(2*u))/2");
+  const gen c2=sym1(at_cos,eval(2*w,1,contextptr));
+  choice=M?m(txt(sym2(at_pow,S,2))+" = "+txt(sym2(at_division,sym2(at_binary_minus,1,c2),2))):string();
+  if (N) choice+=(M?", ":"")+m(txt(sym2(at_pow,C,2))+" = "+txt(sym2(at_division,sym2(at_plus,1,c2),2)));
   return true;
 }
 
@@ -723,7 +783,7 @@ static __attribute__((noinline)) bool irule(const gen & f,const gen & v,gen & r,
           if (!is_op(sq,at_pow) || !(args(sq)[1]==2) || !free_of(k,v) || !is_strictly_positive(k,contextptr)) continue;
           const gen w=args(sq)[0],c2=w==v?gen(1):lin_coef(w,v);
           if (is_zero(c2) || (w==v && is_one(k) && is_one(p))) continue; // (1/(1+x^2): the table)
-          const gen sk=eval(sym1(at_sqrt,k),1,contextptr),c=eval(p/(c2*sk),1,contextptr),at=sym1(at_atan,is_one(sk)?w:sym2(at_division,w,sk));
+          const gen sk=normal(eval(sym1(at_sqrt,k),1,contextptr),contextptr),c=normal(eval(p/(c2*sk),1,contextptr),contextptr),at=sym1(at_atan,is_one(sk)?w:sym2(at_division,w,sk));
           r=cmul(c,at);
           label="Integral of 1/(u^2+a^2)";
           choice=m("a = "+txt(sk));
