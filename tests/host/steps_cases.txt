@@ -67,6 +67,9 @@ integrate(atan(x),x) :: Integration by parts, u-substitution, Substitute back
 integrate(x*sin(x),x,0,pi) :: Integration by parts, Integral of cos, Evaluate at the bounds
 integrate(e^x*sin(x),x) :: Integration by parts, Integration by parts, The integral appears again :: -I` :: )/2`
 integrate(e^(2x)*cos(x),x) :: Integration by parts, Integration by parts, The integral appears again :: -I/4` :: )/(5/4)`
+integrate(e^x*cos(x),x) :: Integration by parts, Integration by parts, The integral appears again
+integrate(sin(x)*cos(x),x) :: u-substitution, Power rule, Substitute back
+integrate(ln(x)/x,x) :: u-substitution, Power rule, Substitute back :: Let `u = ln(x)`
 integrate(e^x/x,x) :: NONE
 # a stored variable: the problem shows its name, so steps on it would mislead (purged after)
 y:=3x+1 :: NONE

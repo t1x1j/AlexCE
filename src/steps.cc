@@ -334,6 +334,8 @@ static void candidates(const gen & f,const gen & v,vecteur & c){
   else if (s==at_division) b=a[1];
   else if (a.size()==1 && s!=at_neg) b=a[0];
   if (!is_zero(b) && !(b==v) && !free_of(b,v) && !equalposcomp(c,b)) c.push_back(b);
+  // a function itself too: u = ln(x) for ln(x)/x, u = sin(x) for sin(x)cos(x)
+  if (a.size()==1 && s!=at_neg && !equalposcomp(c,f)) c.push_back(f);
   for (unsigned i=0;i<a.size();++i) candidates(a[i],v,c);
 }
 // the name of the new variable: u, else w, t, s (not in f, no stored value)
