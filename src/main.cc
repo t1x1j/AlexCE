@@ -809,6 +809,7 @@ string extract_name(const char * s){
 }
 
 void edit_script(const char * fname){
+#ifndef NO_PROGRAM_EDITOR // (the makefile drops the program editor for the steps: nothing to open)
   // clear_abort();
   char fname_[MAX_FILENAME_SIZE+1];
   const char * filename=nullptr;
@@ -861,6 +862,7 @@ void edit_script(const char * fname){
     //dbg_printf("dotextarea\n");
     int result = doTextArea(edptr);
   }
+#endif
 }
 
 string khicas_state(){

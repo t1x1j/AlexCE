@@ -2660,8 +2660,30 @@ int Console_GetKey(){
 #endif
       smallmenuitems[smallmenu.numitems-1].text = (char*) (lang?"Quitter":"Quit");
       // smallmenuitems[2].text = (char*)(isRecording ? "Stop Recording" : "Record Script");
+      const int fulln=smallmenu.numitems; // (Quit: the last of the full menu)
+#ifdef NO_PROGRAM_EDITOR
+      // no program editor (makefile): the script entries (editor, open, run, clear) are not
+      // shown; a choice is mapped back to its number in the full menu, which the code below tests
+      MenuItem shownitems[smallmenu.numitems];
+      unsigned char back[sizeof(shownitems)/sizeof(MenuItem)];
+      int nshown=0,shownsel=0;
+      for (int i=0;i<smallmenu.numitems;++i)
+        if (i!=5 && i!=6 && i!=7 && i!=9){
+          back[nshown]=(unsigned char)i;
+          shownitems[nshown++]=smallmenuitems[i];
+        }
+      smallmenu.items=shownitems;
+      smallmenu.numitems=nshown;
+#endif
       while(1) {
+#ifdef NO_PROGRAM_EDITOR
+        if (shownsel) smallmenu.selection=shownsel; // (a choice that comes back to the menu)
+#endif
         int sres = doMenu(&smallmenu);
+#ifdef NO_PROGRAM_EDITOR
+        shownsel=smallmenu.selection;
+        if (shownsel>=1 && shownsel<=nshown) smallmenu.selection=back[shownsel-1]+1;
+#endif
         if(sres == MENU_RETURN_SELECTION) {
           const char * ptr=nullptr;
           if (smallmenu.selection==1){
@@ -2813,7 +2835,7 @@ int Console_GetKey(){
           }
 #endif
 #endif
-          if (smallmenu.selection == smallmenu.numitems){
+          if (smallmenu.selection == fulln){
             return -2;
           }
           if (smallmenu.selection >= 14 && focus_on){ // Shortcuts, About
@@ -2952,6 +2974,7 @@ int Console_GetKey(){
     }
     if (key == KEY_SHIFT_LEFT)	return Console_MoveCursor(CURSOR_SHIFT_LEFT);
     if (key == KEY_SHIFT_RIGHT)	return Console_MoveCursor(CURSOR_SHIFT_RIGHT);
+#ifndef NO_PROGRAM_EDITOR
     if (key==KEY_CTRL_PRGM){
       if (!edptr)
         edit_script((remove_extension(session_filename)+".py").c_str());
@@ -2959,6 +2982,7 @@ int Console_GetKey(){
         doTextArea(edptr);
       Console_Disp(1);
     }
+#endif
     if (key == KEY_CTRL_EXIT){
       if (Last_Line==Current_Line){
         if (strlen(Edit_Line))

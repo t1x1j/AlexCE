@@ -26,8 +26,9 @@ FEATURE_DEFS = -DWITH_LAPLACE -DWITH_DESOLVE -DWITH_EQW -DWITH_PLOT
 ifeq ($(UNITS),1)
     FEATURE_DEFS += -DWITH_UNITS -DNO_STEPS
 else
-    # FlowCE Steps: giac's Python syntax (28.4 KB) gives its room to the worked steps (steps.cc)
-    FEATURE_DEFS += -DNO_PYTHON_SYNTAX
+    # FlowCE Steps: giac's Python syntax (28.4 KB) and the program editor (31 KB, the user's choice,
+    # 2026-10-15) give their room to the worked steps (steps.cc)
+    FEATURE_DEFS += -DNO_PYTHON_SYNTAX -DNO_PROGRAM_EDITOR
 endif
 
 ifeq ($(APPLANG),fr)

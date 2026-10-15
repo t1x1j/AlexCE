@@ -790,8 +790,10 @@ int handle_key(textArea * text,int key,int keyflag){
 
 // editable texts: the program editor (focus_edit.cc); the others (a command's help) to read
 int doTextArea(textArea* text) {
+#ifndef NO_PROGRAM_EDITOR // (without it: shown to read)
   if (text->editable)
     return focus_edit(text);
+#endif
   focus_text(text->title?text->title:"",merge_area(text->elements).c_str());
   return TEXTAREA_RETURN_EXIT;
 }
