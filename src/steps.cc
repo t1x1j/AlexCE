@@ -324,7 +324,9 @@ int steps_build(const char * input,const string & answer,string & problem,vector
       step s={label,choice,txt(g)};
       out.push_back(s);
     }
-    f=normal(eval(g,1,contextptr),contextptr); // no diff left: the derivative (normal keeps sin, cos)
+    // no diff left: the derivative (normal keeps sin, cos; factor keeps (x+1)^2), parsed again from
+    // its text, unevaluated as the input: evaluated, a/b is a*inv(b), which no rule differentiates
+    f=gen(factor(normal(eval(g,1,contextptr),contextptr),false,contextptr).print(contextptr),contextptr);
     if (k<n){
       step s={"Simplify","",txt(f)};
       out.push_back(s);

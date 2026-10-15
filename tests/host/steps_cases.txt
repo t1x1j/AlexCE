@@ -28,6 +28,13 @@ diff(t^2*sin(t),t) :: Product rule, Power rule, Derivative of sin
 diff(x*x*x*x*x*sin(x),x) :: Product rule
 diff(f(x),x) :: NONE
 diff(floor(x),x) :: NONE
+diff(ln(x),x,2) :: Derivative of ln, Differentiate again
+diff(tan(x),x,2) :: Derivative of tan, Differentiate again
+diff(x/(x+1),x,2) :: Quotient rule, Differentiate again, Reciprocal rule, Chain rule :: diff((1/(x+1)^2), x)
+diff(sqrt(x),x,2) :: Square root rule, Differentiate again
+diff(1/x,x,2) :: Reciprocal rule, Differentiate again
+diff(e*x^2,x) :: Constant multiple rule, Power rule
+diff(pi*sin(x),x) :: Constant multiple rule, Derivative of sin
 # a stored variable: the problem shows its name, so steps on it would mislead (purged after)
 y:=3x+1 :: NONE
 diff(y,x,2) :: NONE
