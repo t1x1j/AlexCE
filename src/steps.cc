@@ -540,6 +540,62 @@ static __attribute__((noinline)) bool split_num(const gen & f,const gen & v,gen 
   return true;
 }
 
+// trig substitution for sqrt(a^2-x^2) (x = a sin t), sqrt(x^2+a^2) (x = a tan t), sqrt(x^2-a^2)
+// (x = a sec t): the integral in t traced on its own (pre), then back-substituted by the triangle
+static __attribute__((noinline)) bool trig_sub(const gen & f,const gen & v,gen & r,string & label,string & choice,vector<step> & pre){
+  if (usub_depth>=2) return false;
+  const vecteur roots=lop(f,at_sqrt);
+  if (roots.size()!=1) return false;
+  const gen R=eval(roots[0]._SYMBptr->feuille,1,contextptr),v2=v*v;
+  const gen k=normal(R-v2,contextptr),k2=normal(R+v2,contextptr); // R = v^2+k, or R = k2-v^2
+  int kind;
+  gen a2;
+  if (free_of(k2,v) && is_strictly_positive(k2,contextptr)){ kind=0; a2=k2; }       // a^2-x^2
+  else if (free_of(k,v) && is_strictly_positive(k,contextptr)){ kind=1; a2=k; }     // x^2+a^2
+  else if (free_of(k,v) && is_strictly_positive(-k,contextptr)){ kind=2; a2=-k; }   // x^2-a^2
+  else return false;
+  gen t("t",contextptr);
+  if (contains(f,t) || !(eval(t,1,contextptr)==t)) t=free_var(f);
+  if (is_zero(t)) return false;
+  const gen a=eval(sym1(at_sqrt,a2),1,contextptr),ga("a",contextptr),gt("t",contextptr),gx("x",contextptr);
+  // x = a sin t, a tan t, a sec t; dx; the root as a cos t, a sec t, a tan t (t in the usual range);
+  // back: sin t, cos t, tan t and t by the triangle
+  static const char * const T[]={"a*sin(t)","a*cos(t)","a*cos(t)","x/a","sqrt(a^2-x^2)/a","x/sqrt(a^2-x^2)","asin(x/a)",
+                                 "a*tan(t)","a*sec(t)^2","a*sec(t)","x/sqrt(x^2+a^2)","a/sqrt(x^2+a^2)","x/a","atan(x/a)",
+                                 "a*sec(t)","a*sec(t)*tan(t)","a*tan(t)","sqrt(x^2-a^2)/x","a/x","sqrt(x^2-a^2)/a","atan(sqrt(x^2-a^2)/a)"};
+  gen g[7];
+  for (int i=0;i<7;++i){
+    g[i]=quotesubst(quotesubst(quotesubst(gen(T[7*kind+i],contextptr),ga,a,contextptr),gt,t,contextptr),gx,v,contextptr);
+    if (i>2) g[i]=gen(eval(g[i],1,contextptr).print(contextptr),contextptr); // (sqrt(9-x^2), not sqrt(3^2-x^2))
+  }
+  const gen G0=normal(eval(quotesubst(quotesubst(f,roots[0],g[2],contextptr),v,g[0],contextptr)*g[1],1,contextptr),contextptr);
+  if (!free_of(G0,v) || interrupted) return false;
+  // the integral in t as it comes (2*tan(t)^2), else in sin and cos (cos(t)/(4*sin(t)^2))
+  const size_t n0=pre.size();
+  gen Et;
+  for (int pass=0;;++pass){
+    if (pass>1 || interrupted) return false;
+    const gen G((pass?normal(_tan2sincos(G0,contextptr),contextptr):G0).print(contextptr),contextptr);
+    step s={"Trig substitution",m(txt(v)+" = "+txt(g[0]))+", "+m(txt(dvar(v))+" = "+txt(mul(g[1],dvar(t))))+"\n"+m(txt(roots[0])+" = "+txt(g[2])),txt(inode(G,t))};
+    pre.push_back(s);
+    Et=inode(G,t);
+    ++usub_depth;
+    const int kk=itrace(Et,G,t,pre);
+    --usub_depth;
+    if (kk==STEPS_OK) break;
+    pre.resize(n0);
+  }
+  // sin 2t = 2 sin t cos t first (texpand), sec, csc, cot by cos and sin, then the triangle, then t
+  const gen S=sym1(at_sin,t),C=sym1(at_cos,t);
+  gen F=_texpand(eval(Et,1,contextptr),contextptr);
+  F=subst(F,makevecteur(sym1(at_sec,t),sym1(at_csc,t),sym1(at_cot,t)),makevecteur(inv(C,contextptr),inv(S,contextptr),C/S),false,contextptr);
+  F=subst(F,makevecteur(S,C,sym1(at_tan,t)),makevecteur(g[3],g[4],g[5]),false,contextptr);
+  F=subst(F,t,g[6],false,contextptr);
+  r=gen(normal(eval(F,1,contextptr),contextptr).print(contextptr),contextptr);
+  label="Back-substitute";
+  choice=m(txt(S)+" = "+txt(g[3]))+", "+m(txt(C)+" = "+txt(g[4]))+"\n"+m(txt(t)+" = "+txt(g[6]));
+  return true;
+}
 // f = c*sin(w)^m*cos(w)^n (products, powers; w linear in v; m, n >= 0)
 static bool sincos(const gen & f,const gen & v,gen & c,gen & w,int & m,int & n){
   if (free_of(f,v)){ c=c*f; return true; }
@@ -707,7 +763,7 @@ static __attribute__((noinline)) bool irule(const gen & f,const gen & v,gen & r,
   }
   r=table_int(f,v,label,choice);
   if (!is_zero(r) || trig_rewrite(f,v,r,label,choice)) return true;
-  return usub(f,v,r,label,choice,pre) || pfrac(f,v,r,label,choice) || split_num(f,v,r,label,choice) || parts(f,v,r,label,choice);
+  return usub(f,v,r,label,choice,pre) || trig_sub(f,v,r,label,choice,pre) || pfrac(f,v,r,label,choice) || split_num(f,v,r,label,choice) || parts(f,v,r,label,choice);
 }
 
 // the first integrate(.,v) node of E (leftmost, outermost) replaced by its rule: 1 done, 0 no node

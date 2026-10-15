@@ -82,6 +82,11 @@ integrate(tan(x)^3,x) :: Pythagorean identity, Difference rule, u-substitution, 
 integrate(tan(x)^2,x) :: Pythagorean identity, Difference rule, Integral of sec^2, Constant rule
 integrate(sec(x)^3,x) :: Integral of sec^3
 integrate(sin(x^2)^3,x) :: NONE
+integrate(sqrt(9-x^2),x) :: Trig substitution, Power-reducing identity, Back-substitute :: `x = 3*sin(t)`
+integrate(1/(x^2*sqrt(x^2+4)),x) :: Trig substitution, Back-substitute :: `x = 2*tan(t)`
+integrate(sqrt(x^2-4)/x,x) :: Trig substitution, Back-substitute :: `x = 2*sec(t)`
+integrate(x^3/sqrt(4-x^2),x) :: Trig substitution, Back-substitute
+integrate(sqrt(x^2+2x),x) :: NONE
 integrate(u*cos(u^2),u) :: u-substitution, Integral of cos, Substitute back :: Let `w = u^2`
 integrate(x*e^x,x) :: Integration by parts, Integral of exp :: u = x
 integrate(x^2*e^x,x) :: Integration by parts, Integration by parts, Integral of exp
