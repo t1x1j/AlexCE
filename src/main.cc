@@ -634,7 +634,7 @@ void console_show_steps(int in,int out){
   using namespace giac;
   std::string problem;
   std::vector<step> v;
-  statuslinemsg("computing...");
+  statuslinemsg("computing steps... ON: stop",COLOR_RED); // (a long product: over a minute)
   stdostream * savelog=logptr(contextptr);
   logptr(0,contextptr);
   dconsole_mode=0;
