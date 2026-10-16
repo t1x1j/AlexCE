@@ -18,7 +18,7 @@
 - A wrong step is never shown: any failed check gives "No steps for this one. The answer is still correct."
 - Steps are computed only on `2nd` `F4`; giac's engine and `answer.cc` unchanged.
 - No attribution lines in commits; push each commit to `origin steps`.
-- Commands: build `FLOWCE_WSL_DISTRO=Ubuntu KB=/home/toadvine/flowce-build tools/dev/build.sh en`; host tests via the scratchpad script `steptest.sh` (runs `HG_BUILD=~/flowce-build/hostgiac-steps tests/host/run_steps_tests.sh`); WSL commands through script files.
+- Commands: build `FLOWCE_WSL_DISTRO=Ubuntu KB=~/flowce-build tools/dev/build.sh en`; host tests via the scratchpad script `steptest.sh` (runs `HG_BUILD=~/flowce-build/hostgiac-steps tests/host/run_steps_tests.sh`); WSL commands through script files.
 
 ## Review Focus
 

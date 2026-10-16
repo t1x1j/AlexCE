@@ -9,12 +9,13 @@ B84=${1:?usage: site/build.sh <AlexCE.b84> [version]}
 VER=${2:-}
 OUT=_site
 rm -rf "$OUT"
-mkdir -p "$OUT/media/screenshots" "$OUT/media/install" "$OUT/files"
+mkdir -p "$OUT/media/screenshots" "$OUT/media/install" "$OUT/media/steps" "$OUT/files"
 cp site/index.html site/style.css site/installer.js site/dusb.js "$OUT/"
 cp site/icon.svg "$OUT/media/icon.svg"
 cp docs/flowce_light.gif docs/flowce_dark.gif "$OUT/media/"
 cp docs/screenshots/*.png "$OUT/media/screenshots/"
 cp docs/install/*.gif "$OUT/media/install/"
+cp docs/steps/*.png "$OUT/media/steps/"
 cp "$B84" "$OUT/files/AlexCE.b84"
 printf '%s\n' "$VER" > "$OUT/files/version.txt"
 echo "built $OUT ($(du -sh "$OUT" | cut -f1)), AlexCE ${VER:-(no version)}"

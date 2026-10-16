@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AlexCE: calculus on your TI-84 Plus CE</title>
+<title>AlexCE: calculus with the steps, on your TI-84 Plus CE</title>
 <meta name="description" content="A free computer algebra system for the TI-84 Plus CE, built for Calc 1 and Calc 2: exact answers in textbook form, math drawn as you type it, graphs, light and dark themes. Install it from this page.">
-<meta property="og:title" content="AlexCE: calculus on your TI-84 Plus CE">
+<meta property="og:title" content="AlexCE: calculus with the steps, on your TI-84 Plus CE">
 <meta property="og:description" content="Exact answers in textbook form, math drawn as you type it, graphs. Free and open source.">
 <meta property="og:image" content="media/screenshots/sec.png">
 <link rel="icon" href="media/icon.svg" type="image/svg+xml">
@@ -20,6 +20,7 @@
   <div class="wrap top-in">
     <a class="wordmark" href="#">Alex<span>CE</span></a>
     <nav>
+      <a href="#steps">Steps</a>
       <a href="#features">Features</a>
       <a href="#install">Install</a>
       <a href="#keys">Keys</a>
@@ -32,7 +33,8 @@
 <section class="hero wrap">
   <div class="hero-text">
     <h1><span class="wordmark big">Alex<span>CE</span></span></h1>
-    <p class="lead">Calculus on your TI-84 Plus CE.</p>
+    <p class="lead">Calculus on your TI-84 Plus CE, with the steps.</p>
+    <p>Solve a derivative or an integral, then press <kbd>2nd</kbd> <kbd>trace</kbd> to see how it was done: every step numbered, every rule named and every choice written out (<span class="m">u = x² + 1</span>, <span class="m">x = 3 sin t</span>), so you can do the next one on paper.</p>
     <p>Type math the way it looks. Get answers the way your textbook writes them: <span class="m">π²/6</span>, not 1.64493, with the decimal right under the exact one.</p>
     <div class="cta">
       <a class="btn primary" href="#install">Install on my calculator</a>
@@ -41,11 +43,38 @@
     <p class="fine">Free and open source (GNU GPL). For the TI-84 Plus CE and TI-83 Premium CE.</p>
   </div>
   <figure class="screen hero-screen">
-    <picture>
-      <source srcset="media/flowce_dark.gif" media="(prefers-color-scheme: dark)">
-      <img src="media/flowce_light.gif" width="640" height="480" alt="AlexCE on the calculator: a definite integral typed in 2D, the sum of 1/n² giving π²/6, other forms of an answer, and a graph with trace">
-    </picture>
+    <img src="media/steps/trig_sub.png" width="640" height="480" alt="The Steps screen for the integral of the square root of 9 minus x squared: the question, then Step 1, trig substitution, with x = 3 sin t, dx = 3 cos t dt and the root as 3 cos t">
   </figure>
+</section>
+
+<section id="steps" class="wrap">
+  <h2>Worked steps</h2>
+  <p class="intro">AlexCE is <a href="https://github.com/tommyb3ll/FlowCE">FlowCE</a> with one big addition: the work behind derivatives and integrals. After the answer, <kbd>2nd</kbd> <kbd>trace</kbd> opens the steps: the <strong>question</strong> at the top, then <strong>Step 1, Step 2, …</strong>, each naming its rule and what it chose, and the <strong>answer</strong> in a highlighted box at the end. Every step is checked before it is shown; a problem it can't explain shows "No steps" (the answer is still right).</p>
+  <div class="cards">
+    <article class="card">
+      <div class="glyph">d/dx</div>
+      <h3>Derivatives</h3>
+      <p>Power, constant multiple, sum and difference; product, quotient and reciprocal rules; the chain rule with its outer and inner function; trig, inverse trig, <span class="m">eˣ</span>, <span class="m">aˣ</span>, <span class="m">ln</span>, <span class="m">log</span>, roots, <span class="m">|x|</span> and hyperbolics; logarithmic differentiation; second and third derivatives.</p>
+    </article>
+    <article class="card">
+      <div class="glyph">∫</div>
+      <h3>Integrals</h3>
+      <p>The basic rules and the table; u-substitution (with <span class="m">u</span> and <span class="m">du</span>, then back); integration by parts (LIATE, with <span class="m">u</span>, <span class="m">dv</span>, <span class="m">du</span>, <span class="m">v</span>, and integrals that come back); definite integrals evaluated at the bounds.</p>
+    </article>
+    <article class="card">
+      <div class="glyph">½</div>
+      <h3>Calc 2 techniques</h3>
+      <p>Partial fractions (division first, splitting the numerator, completing the square); trig integrals (odd powers by <span class="m">sin² + cos² = 1</span>, even powers by the power-reducing identities, powers of <span class="m">tan</span>); trig substitution with <span class="m">sin</span>, <span class="m">tan</span> or <span class="m">sec</span> and the triangle back to <span class="m">x</span>.</p>
+    </article>
+  </div>
+  <div class="gallery">
+    <figure><img src="media/steps/product_rule.png" loading="lazy" width="640" height="480" alt="Steps for the derivative of x squared sin 3x: the question and Step 1, the product rule"><figcaption>the product rule</figcaption></figure>
+    <figure><img src="media/steps/chain_answer.png" loading="lazy" width="640" height="480" alt="Step 3, the chain rule with outer sin u and inner u = 3x, then the answer"><figcaption>the chain rule, then the answer</figcaption></figure>
+    <figure><img src="media/steps/partial_fractions.png" loading="lazy" width="640" height="480" alt="Steps for the integral of 1 over x squared minus 1: Step 1, partial fractions"><figcaption>partial fractions</figcaption></figure>
+    <figure><img src="media/steps/trig_sub.png" loading="lazy" width="640" height="480" alt="Step 1 for the integral of the root of 9 minus x squared: trig substitution x = 3 sin t"><figcaption>trig substitution</figcaption></figure>
+    <figure><img src="media/steps/back_sub.png" loading="lazy" width="640" height="480" alt="Step 8, back-substitute: sin t = x/3, cos t = root of 9 minus x squared over 3, t = arcsin(x/3)"><figcaption>back to x by the triangle</figcaption></figure>
+    <figure><img src="media/steps/by_parts.png" loading="lazy" width="640" height="480" alt="Steps for the integral of x cosh x: integration by parts with u = x and v = sinh x, then the answer"><figcaption>integration by parts</figcaption></figure>
+  </div>
 </section>
 
 <section id="features" class="wrap">
@@ -185,6 +214,7 @@
       <tr><td><kbd>math</kbd></td><td>templates: fraction, root, integrals, derivative, limit, sum</td></tr>
       <tr><td><kbd>▲</kbd> / <kbd>▼</kbd></td><td>history / search every command</td></tr>
       <tr><td><kbd>enter</kbd> on a history line</td><td>reuses that input or answer</td></tr>
+      <tr><td><kbd>2nd</kbd> <kbd>trace</kbd> after a derivative or an integral</td><td>its worked steps (<kbd>▲</kbd> <kbd>▼</kbd> scroll, <kbd>clear</kbd> goes back)</td></tr>
       <tr><td><kbd>F4</kbd> on an answer</td><td>its other forms</td></tr>
       <tr><td><kbd>(−)</kbd></td><td>a minus sign; <kbd>2nd</kbd> <kbd>(−)</kbd> is the last answer (Ans)</td></tr>
       <tr><td><kbd>+</kbd> <kbd>−</kbd> <kbd>×</kbd> <kbd>÷</kbd> <kbd>^</kbd> first</td><td>works on the last answer, as on a TI (<kbd>×</kbd> <kbd>2</kbd> is Ans·2)</td></tr>

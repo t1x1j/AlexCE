@@ -19,8 +19,8 @@
 - Steps are computed only on `2nd` `F4`; the normal answer path (`do_run`, `answer.cc`) is unchanged.
 - `2nd` `F4` keeps its current menu (polynomials) whenever the selected result is not a derivative.
 - Commit messages carry no attribution lines; each commit is pushed to `origin steps`.
-- Build commands (Git Bash, repo root): `FLOWCE_WSL_DISTRO=Ubuntu KB=/home/toadvine/flowce-build tools/dev/build.sh en`. WSL commands go through a script file (`wsl.exe` drops `$VAR` in inline commands): write the script to the scratchpad and run `MSYS_NO_PATHCONV=1 wsl.exe -d Ubuntu -- bash <script path in /mnt/c/...>`.
-- Host build: in WSL, `KB=~/flowce-build HG_BUILD=~/flowce-build/hostgiac bash /mnt/c/Users/Strad/Desktop/Folder/FlowCE-Steps/tools/hostgiac/build.sh worktree` → `~/flowce-build/hostgiac/bin/hostgiac-worktree`.
+- Build commands (Git Bash, repo root): `FLOWCE_WSL_DISTRO=Ubuntu KB=~/flowce-build tools/dev/build.sh en`. WSL commands go through a script file (`wsl.exe` drops `$VAR` in inline commands): write the script to the scratchpad and run `MSYS_NO_PATHCONV=1 wsl.exe -d Ubuntu -- bash <script path in /mnt/c/...>`.
+- Host build: in WSL, `KB=~/flowce-build HG_BUILD=~/flowce-build/hostgiac bash <repo>/tools/hostgiac/build.sh worktree` → `~/flowce-build/hostgiac/bin/hostgiac-worktree`.
 
 ## Review Focus
 
@@ -87,7 +87,7 @@ endif
 
 - [ ] **Step 4: Build and measure**
 
-Run: `FLOWCE_WSL_DISTRO=Ubuntu KB=/home/toadvine/flowce-build tools/dev/build.sh en`
+Run: `FLOWCE_WSL_DISTRO=Ubuntu KB=~/flowce-build tools/dev/build.sh en`
 Expected: `[build] OK ... _DEMO.bin=` about 2,765,800 B, `room left:` about 52,000 B. Write the exact numbers into the commit message.
 
 - [ ] **Step 5: Install into the emulator and run the suite**
@@ -96,7 +96,7 @@ WSL script:
 
 ```bash
 export KB=~/flowce-build KHICAS_ROM=~/flowce-build/emu/rom/TI84CE.rom
-R=/mnt/c/Users/Strad/Desktop/Folder/FlowCE-Steps; H=$R/tools/hostgiac
+R=<repo>; H=$R/tools/hostgiac
 python3 $R/tools/emu/install.py en base $KB/emu/shots 2>&1 | grep -v 'screen size is bogus'
 python3 $R/tools/emu/batch.py base $KB/results/nopython.txt $H/corpus_calc1_web.txt $H/corpus_calc23.txt $H/corpus_calc23_web.txt -b $KB/hostgiac/bin/hostgiac-worktree > $KB/logs/nopython.log 2>&1
 tail -1 $KB/results/nopython.txt.diff
@@ -276,7 +276,7 @@ std::string khicas_steps(const char * s){
 
 - [ ] **Step 4: Run the tests to see them fail**
 
-Run (WSL): `bash /mnt/c/Users/Strad/Desktop/Folder/FlowCE-Steps/tests/host/run_steps_tests.sh`
+Run (WSL): `bash <repo>/tests/host/run_steps_tests.sh`
 Expected: the host build fails (`steps.h: No such file`), which is the failing state.
 
 - [ ] **Step 5: Write `src/steps.h`**
@@ -506,12 +506,12 @@ int steps_build(const char * input,const string & answer,string & problem,vector
 
 - [ ] **Step 7: Run the tests**
 
-Run (WSL): `bash /mnt/c/Users/Strad/Desktop/Folder/FlowCE-Steps/tests/host/run_steps_tests.sh`
+Run (WSL): `bash <repo>/tests/host/run_steps_tests.sh`
 Expected: the steps of each problem printed, then `6/6 cases pass`. Read the printed expressions too: each one must be mathematically right and readable (e.g. `diff(x^3+5x,x)`: `[Sum rule] :: diff(x^3,x)+5`, `[Power rule] :: 3*x^2+5`). If a label differs, fix `rule()`, not the cases. If the build fails on a giac name (`is_one`, `is_linear_wrt`), look it up in `src/giac/*.h` (`grep -n "bool is_one" src/giac/gen.h`) and use the declared signature.
 
 - [ ] **Step 8: Check the calculator build still links and record its size**
 
-Run: `FLOWCE_WSL_DISTRO=Ubuntu KB=/home/toadvine/flowce-build tools/dev/build.sh en`
+Run: `FLOWCE_WSL_DISTRO=Ubuntu KB=~/flowce-build tools/dev/build.sh en`
 Expected: `[build] OK`, size noted (steps.cc is linked only if referenced; at this point it is not yet referenced, so the size may not change: that is fine).
 
 - [ ] **Step 9: Commit**
@@ -566,7 +566,7 @@ diff(floor(x),x) :: NONE
 
 - [ ] **Step 2: Run the tests to see the new cases fail**
 
-Run (WSL): `bash /mnt/c/Users/Strad/Desktop/Folder/FlowCE-Steps/tests/host/run_steps_tests.sh`
+Run (WSL): `bash <repo>/tests/host/run_steps_tests.sh`
 Expected: `6/29 cases pass` or close (Task 2's pass; most new ones print `NO STEPS`; the two NONE cases may already pass).
 
 - [ ] **Step 3: Extend `rule()`**
@@ -684,7 +684,7 @@ Notes for the implementer:
 
 - [ ] **Step 4: Run the tests**
 
-Run (WSL): `bash /mnt/c/Users/Strad/Desktop/Folder/FlowCE-Steps/tests/host/run_steps_tests.sh`
+Run (WSL): `bash <repo>/tests/host/run_steps_tests.sh`
 Expected: `29/29 cases pass`. Read every printed trace: the choice lines must name the right parts (`f = x^2, g = sin(3*x)`), and the expressions must be correct mathematics. A case printing `NO STEPS` because `same()` failed on a correct step (a trig identity simplify misses, e.g. `sec(x)^2` against `1+tan(x)^2`): make `same()` also accept `is_zero(simplify(texpand(e-d)))`, re-run, and say so in the commit message.
 
 - [ ] **Step 5: Commit**
@@ -888,7 +888,7 @@ In `console_fkey_label` (console.cc:3701), before its last `return`, add:
 
 - [ ] **Step 5: Build**
 
-Run: `FLOWCE_WSL_DISTRO=Ubuntu KB=/home/toadvine/flowce-build tools/dev/build.sh en`
+Run: `FLOWCE_WSL_DISTRO=Ubuntu KB=~/flowce-build tools/dev/build.sh en`
 Expected: `[build] OK`, `room left:` positive. Record the size; if the build says TOO BIG, stop and report the numbers (spec: next removal needs the user's agreement).
 
 - [ ] **Step 6: Check on the emulator (screenshots)**
@@ -897,8 +897,8 @@ WSL script (`KHICAS_ROM`, `KB` exported as in Task 1; `$C` = `tools/emu/cemu.py`
 
 ```bash
 export KB=~/flowce-build KHICAS_ROM=~/flowce-build/emu/rom/TI84CE.rom
-C=/mnt/c/Users/Strad/Desktop/Folder/FlowCE-Steps/tools/emu/cemu.py
-python3 /mnt/c/Users/Strad/Desktop/Folder/FlowCE-Steps/tools/emu/install.py en base $KB/emu/shots
+C=<repo>/tools/emu/cemu.py
+python3 <repo>/tools/emu/install.py en base $KB/emu/shots
 python3 $C base - $KB/emu/shots 'type:diff(x^2*sin(3x),x)' key:enter run:4000 shot:s1_answer key:2nd run:200 shot:s2_bar key:trace run:6000 shot:s3_steps key:down run:500 shot:s4_scrolled key:clear run:800 shot:s5_back
 python3 $C base - $KB/emu/shots 'type:factor(x^2-1)' key:enter run:3000 key:2nd key:trace run:1500 shot:s6_notderiv
 python3 $C base - $KB/emu/shots 'type:diff(f(x),x)' key:enter run:3000 key:2nd key:trace run:3000 shot:s7_none
@@ -927,7 +927,7 @@ git push -q origin steps
 
 **Files:**
 - Modify: none in src (unless the suite finds a regression)
-- Create (outside the repo): `C:\Users\Strad\Desktop\Folder\flowce-build-out\FlowCE.b84`, `_site/` served locally
+- Create (outside the repo): `<build-out>\FlowCE.b84`, `_site/` served locally
 
 **Interfaces:**
 - Consumes: the build of Task 4 (`$KB/out/en/AppIns*.8xv`), `$KB/emu/arTIfiCE.8xp`, `app_tools/INST.8xp`.
@@ -947,7 +947,7 @@ The web installer expects the arTIfiCE program named `A` and `INST` plus `AppIns
 WSL script:
 
 ```bash
-KB=~/flowce-build; O=/mnt/c/Users/Strad/Desktop/Folder/flowce-build-out; mkdir -p $O
+KB=~/flowce-build; O=<build-out>; mkdir -p $O
 args=""; for f in $(ls $KB/out/en/AppIns*.8xv | sort -V); do args="$args -i $f"; done
 $KB/CEdev/bin/convbin -j 8x -k b84 $args -i $KB/emu/arTIfiCE.8xp -i $KB/src/app_tools/INST.8xp -o $O/FlowCE.b84
 ls -l $O/FlowCE.b84

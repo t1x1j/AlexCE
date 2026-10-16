@@ -151,7 +151,8 @@ kbd {
 .gallery figure { margin: 0; }
 .gallery figcaption { text-align: center; font-size: .9rem; color: var(--sub); margin-top: .45rem; }
 
-#install .intro { max-width: 760px; }
+#install .intro, #steps .intro { max-width: 760px; }
+#steps .gallery { margin-top: 1.5rem; }
 .installer {
   background: var(--card);
   border: 1px solid var(--line);
