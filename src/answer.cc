@@ -1111,6 +1111,22 @@ static giac::gen table_integral(const giac::gen & g){
     return r;
   // evaluated ((cos(x)^3+sin(x))/cos(x)^2 is a product)
   const gen f=eval(g._SYMBptr->feuille._VECTptr->front(),1,contextptr),& x=g._SYMBptr->feuille._VECTptr->back();
+  // sinh(u), cosh(u), tanh(u), 1/cosh(u)^2 of a linear u: cosh(u)/a, sinh(u)/a, ln(cosh(u))/a,
+  // tanh(u)/a (giac answered in exponentials: (exp(x)-1/exp(x))/2 for cosh(x))
+  {
+    const gen q=f.is_symb_of_sommet(at_inv)?f._SYMBptr->feuille:gen(0); // 1/cosh(u)^2: inv(cosh(u)^2)
+    const bool c2=q.is_symb_of_sommet(at_pow) && q._SYMBptr->feuille.type==_VECT && q._SYMBptr->feuille._VECTptr->size()==2
+                  && q._SYMBptr->feuille._VECTptr->back()==2 && q._SYMBptr->feuille._VECTptr->front().is_symb_of_sommet(at_cosh);
+    const int k=c2?3:f.is_symb_of_sommet(at_sinh)?0:f.is_symb_of_sommet(at_cosh)?1:f.is_symb_of_sommet(at_tanh)?2:-1;
+    if (k>=0){
+      const gen u=(c2?q._SYMBptr->feuille._VECTptr->front():f)._SYMBptr->feuille,a=derive(eval(u,1,contextptr),x,contextptr);
+      if (!is_zero(a) && free_of(a,x)){
+        static const char * const H[]={"cosh(u)","sinh(u)","ln(cosh(u))","tanh(u)"};
+        const gen h=quotesubst(gen(H[k],contextptr),gen("u",contextptr),u,contextptr);
+        return is_one(a)?h:sym2(at_division,h,a);
+      }
+    }
+  }
   r=trig_powers(f,x);
   return is_zero(r)?usub(f,x):r;
 }

@@ -19,10 +19,16 @@ UNITS ?= 0
 # (WITH_TABVAR: tabvar, domain; ~87 KB) for the Focus interface's fonts (2026-10-05, notes/ui).
 # Physical units (WITH_UNITS, 34.6 KB) are traded for giac's Python syntax (its translator,
 # 28.4 KB; B. Parisse's suggestion, 2026-10-08): both do not fit. UNITS=1 builds units and no
-# Python syntax, as up to v1.7 (released as FlowCE-units.b84 since v1.8).
+# Python syntax, as up to v1.7 (released as FlowCE-units.b84 since v1.8). FlowCE Steps: the
+# default build drops Python syntax too, for the worked steps (steps.cc, about 19 KB); units and
+# the steps do not both fit (2,820,034 B), so UNITS=1 builds without the steps (NO_STEPS).
 FEATURE_DEFS = -DWITH_LAPLACE -DWITH_DESOLVE -DWITH_EQW -DWITH_PLOT
 ifeq ($(UNITS),1)
-    FEATURE_DEFS += -DWITH_UNITS
+    FEATURE_DEFS += -DWITH_UNITS -DNO_STEPS
+else
+    # FlowCE Steps: giac's Python syntax (28.4 KB) and the program editor (31 KB, the user's choice,
+    # 2026-10-15) give their room to the worked steps (steps.cc)
+    FEATURE_DEFS += -DNO_PYTHON_SYNTAX -DNO_PROGRAM_EDITOR
 endif
 
 ifeq ($(APPLANG),fr)
@@ -54,9 +60,9 @@ CXXFLAGS = -std=c++14 -fno-rtti -fno-threadsafe-statics -Wall -Wextra -Oz -Iustl
 %ui_font.c.bc %ui_gfx.c.bc: CFLAGS := $(subst -Oz,-O2,$(CFLAGS))
 
 CPP_EXTENSION = cc
-APP_NAME = FlowCE
+APP_NAME = AlexCE
 APP_VERSION = 5.0.0.0000
-DESCRIPTION = FlowCE - calculus CAS - GNU GPL
+DESCRIPTION = AlexCE - calculus CAS - GNU GPL
 
 EXTRA_LDFLAGS = -e 9999
 ALLOCATOR = CUSTOM

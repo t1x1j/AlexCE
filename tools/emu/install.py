@@ -19,6 +19,11 @@ if not apps:
 e = Emu(rom=ROM, shotdir=shots)
 try:
     e.run(3000); e.key('clear'); e.run(500)
+    # Erase the archive first, as the web installer does (site/installer.js erase()): a ROM dumped
+    # from a calculator in use keeps its archive, which can leave too little room for FlowCE.
+    for k in ('2nd', 'mode', 'clear', '2nd', 'add', '7', 'right', '3'):         # quit, MEM, Reset, ARCHIVE, Both
+        e.key(k); e.run(800)
+    e.key('2'); e.run(20000); e.key('clear'); e.run(500)                         # Reset
     e.send(f'{KB}/emu/arTIfiCE.8xp', 'ram')
     e.send(f'{KB}/src/app_tools/INST.8xp', 'ram')
     for a in apps:
@@ -35,7 +40,8 @@ try:
     # giac's root finder). A hardware reset (the button on the back) is always safe.
     e.reset(); e.run(6000)
     e.key('clear'); e.run(300)                                         # (FlowCE runs on OS 5.8.2 as is)
-    e.key('apps'); e.run(1000); e.key('2'); e.run(1500)                # APPS -> 2:FlowCE (after Finance)
+    e.key('apps'); e.run(1000); e.shot(f'install_{state}_apps')       # the APPS menu
+    e.key('2'); e.run(1500)                                            # APPS -> 2:AlexCE (after Finance)
     e.shot(f'install_{state}_splash')                                   # the start screen
     e.key('enter'); e.run(1500)                                        # dismiss the splash screen
     # KhiCAS must be running: its F-key bar (bottom rows) is pink (classic) or its status bar is

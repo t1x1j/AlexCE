@@ -23,7 +23,7 @@ KDISPLAY ?= 1
 ifeq ($(KDISPLAY),1)
 GIAC_SRC := $(wildcard $(T)/giac/*.cc)
 UI_SRC := $(REPO)/src/ui_gfx.c $(REPO)/src/ui_font.c $(REPO)/src/ui_fontdata.c
-HOST_EXTRA := $(OBJ)/host/stubs_ui.o $(OBJ)/host/khicas_post.o $(OBJ)/khicas/answer.o
+HOST_EXTRA := $(OBJ)/host/stubs_ui.o $(OBJ)/host/khicas_post.o $(OBJ)/khicas/answer.o $(OBJ)/khicas/steps.o
 else
 GIAC_SRC := $(filter-out $(T)/giac/kdisplay.cc,$(wildcard $(T)/giac/*.cc))
 endif

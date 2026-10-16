@@ -8,6 +8,7 @@
 #include "giacPCH.h"
 #include "kdisplay.h"
 #include "../../src/answer.h"
+#include "../../src/steps.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -101,6 +102,31 @@ std::string khicas_forms(const char * s){
     out+=F.text[k-1];
     out+=b;
     cur=F.text[k-1];
+  }
+  ctrl_c=kbd_interrupted=interrupted=false;
+  return out;
+}
+
+// -S: the worked steps of the answer (steps.cc), as 2nd F4 shows them:
+// "answer\n  problem: ...\n  [rule] choice :: expr" (or "  (no steps)", "  (stopped)")
+std::string khicas_steps(const char * s){
+  std::string printed=khicas_do_run(s);
+  const size_t a=printed.find("  ~ ");
+  const std::string bare=a==std::string::npos?printed:printed.substr(0,a);
+  std::string problem;
+  std::vector<step> v;
+  const int r=steps_build(s,bare,problem,v);
+  std::string out=bare+"\n  problem: "+problem;
+  if (r==STEPS_NONE) out+="\n  (no steps)";
+  if (r==STEPS_STOPPED) out+="\n  (stopped)";
+  for (size_t i=0;i<v.size();++i){
+    out+="\n  ["+v[i].label+"]";
+    if (!v[i].choice.empty()){ // math between backquotes
+      std::string c=v[i].choice;
+      for (size_t j=0;j<c.size();++j) if (c[j]=='\x01') c[j]='`'; else if (c[j]=='\n') c[j]='/';
+      out+=" "+c;
+    }
+    out+=" :: "+v[i].expr;
   }
   ctrl_c=kbd_interrupted=interrupted=false;
   return out;

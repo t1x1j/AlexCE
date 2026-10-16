@@ -1,0 +1,138 @@
+# Steps of derivatives (steps.cc): the labels expected, in order (others, e.g. a final Simplify, may follow)
+diff(x^3+5x,x) :: Sum rule, Power rule
+diff(4x^5,x) :: Constant multiple rule, Power rule
+diff(x^3-x^2,x) :: Difference rule, Power rule, Power rule :: problem: diff((x^3-x^2), x) :: [Difference rule] :: diff((x^3), x)-diff((x^2), x)
+diff(7,x) :: Constant rule
+diff(3x+2,x) :: Linear function
+diff(t^4+t,t) :: Sum rule, Power rule
+diff(x^2*sin(3x),x) :: Product rule, Power rule, Chain rule :: problem: diff((x^2*sin(3*x)), x) :: [Product rule] f = `x^2`, g = `sin(3*x)` :: [Chain rule] outer `sin(u)`, inner `u = 3*x` :: [Power rule] :: 2*x*sin(3*x)+x^2*diff((sin(3*x)), x)
+diff(sin(x^2),x) :: Chain rule, Power rule
+diff(e^x/x,x) :: Quotient rule, Derivative of exp
+diff(5/x^2,x) :: Reciprocal rule, Power rule
+diff(ln(cos(x)),x) :: Chain rule, Derivative of cos
+diff(sqrt(x^2+1),x) :: Chain rule, Sum rule, Power rule
+diff(sec(x)*tan(x),x) :: Product rule, Derivative of sec, Derivative of tan
+diff(asin(2x),x) :: Chain rule
+diff(atan(x^2),x) :: Chain rule, Power rule
+diff(2^x*cos(x),x) :: Product rule, Exponential rule, Derivative of cos
+diff(x^x,x) :: Logarithmic differentiation, Product rule, Derivative of ln
+diff((x^2+1)^5,x) :: Chain rule, Sum rule, Power rule
+diff(e^(3x)*ln(x),x) :: Product rule, Chain rule, Derivative of ln
+diff(x*e^x*sin(x),x) :: Product rule, Product rule, Derivative of exp, Derivative of sin
+diff(cot(x)+csc(x),x) :: Sum rule, Derivative of cot, Derivative of csc
+diff(acos(x)-log10(x),x) :: Difference rule, Derivative of acos, Derivative of log10
+diff(abs(x^2-4),x) :: Chain rule, Difference rule, Power rule :: inner `u = x^2-4`
+diff(3x^2,x,2) :: Constant multiple rule, Power rule, Simplify, Differentiate again, Linear function
+diff(sin(x),x,3) :: Derivative of sin, Differentiate again, Derivative of cos, Differentiate again, Constant multiple rule, Derivative of sin :: diff((-sin(x)), x)
+diff(t^2*sin(t),t) :: Product rule, Power rule, Derivative of sin
+diff(x*x*x*x*x*sin(x),x) :: Product rule
+diff(f(x),x) :: NONE
+diff(floor(x),x) :: NONE
+diff(ln(x),x,2) :: Derivative of ln, Differentiate again
+diff(tan(x),x,2) :: Derivative of tan, Differentiate again
+diff(x/(x+1),x,2) :: Quotient rule, Differentiate again, Reciprocal rule, Chain rule :: diff((1/(x+1)^2), x)
+diff(sqrt(x),x,2) :: Square root rule, Differentiate again
+diff(1/x,x,2) :: Reciprocal rule, Differentiate again
+diff(e*x^2,x) :: Constant multiple rule, Power rule
+diff(pi*sin(x),x) :: Constant multiple rule, Derivative of sin
+diff(x^2*e^(3x)/sin(x),x) :: Quotient rule, Product rule, Power rule, Chain rule, Derivative of sin
+diff((x^2+1)*sin(x)-x*cos(x),x) :: Difference rule, Product rule, Product rule
+# integrals (part 2a, task 1)
+integrate(3x^2+2x+1,x) :: Sum rule, Constant multiple rule, Power rule, Constant rule
+integrate(x^-2,x) :: Power rule :: /(-1)
+integrate(1/x,x) :: Log rule
+integrate(sqrt(x),x) :: Power rule :: `sqrt(x) = x^(1/2)` :: x^(3/2)/(3/2)
+integrate(5/x^3,x) :: Rewrite as a power, Power rule
+integrate(cos(x),x) :: Integral of cos
+integrate(e^x,x) :: Integral of exp
+integrate(sec(x)^2,x) :: Integral of sec^2
+integrate(2^x,x) :: Exponential rule
+integrate(1/(1+x^2),x) :: Integral of 1/(1+x^2)
+integrate(x^2,x,0,3) :: Power rule, Evaluate at the bounds
+integrate(e^(x^2),x) :: NONE
+integrate(sqrt(1+x^3),x,0,1) :: NONE
+integrate(cos(3x),x) :: =Integral of cos :: `u = 3*x`: divide by `3`
+integrate(2x*cos(x^2),x) :: u-substitution, Integral of cos, Substitute back :: Let `u = x^2`
+integrate(x/(x^2+1),x) :: u-substitution, Constant multiple rule, Log rule, Substitute back
+integrate((2x+3)/(x^2+3x+1),x) :: u-substitution, Log rule, Substitute back
+integrate(x*e^(x^2),x) :: u-substitution, Integral of exp, Substitute back
+integrate((x^2+1)^5*x,x) :: u-substitution, Power rule, Substitute back
+integrate(sin(x)*cos(x)^2,x) :: u-substitution, Power rule, Substitute back
+integrate(e^(2x+1),x) :: =Integral of exp
+integrate(1/(2x+5),x) :: =Log rule
+integrate((3x-1)^4,x) :: =Power rule
+integrate(1/(x+1)^2,x) :: =Power rule
+integrate(1/(x^2+4),x) :: Integral of 1/(u^2+a^2)
+integrate(3/((x+2)^2+9),x) :: Integral of 1/(u^2+a^2)
+integrate((x+1)*(x-2),x) :: Expand, Difference rule
+integrate((1-x^2)^2,x) :: Expand
+integrate(1/(x^2-1),x) :: Partial fractions, Difference rule, Log rule, Log rule
+integrate((x^3+1)/(x^2-1),x) :: Polynomial division, Power rule, Log rule
+integrate(1/(x*(x+1)^2),x) :: Partial fractions, Log rule, Power rule, Log rule
+integrate((3x+5)/((x-1)*(x^2+1)),x) :: Partial fractions, Log rule, Split the numerator
+integrate((x+4)/(x^2+4x+8),x) :: Split the numerator, u-substitution, Complete the square, Integral of 1/(u^2+a^2)
+integrate(1/(4x^2-4x+3),x) :: Complete the square, Integral of 1/(u^2+a^2)
+integrate(1/(x^3+x),x) :: Partial fractions
+integrate(sin(x)^3,x) :: Pythagorean identity, u-substitution, Substitute back :: `sin(x)^2 = 1-cos(x)^2`
+integrate(sin(x)^2*cos(x)^3,x) :: Pythagorean identity, u-substitution, Substitute back
+integrate(sin(x)^2,x) :: Power-reducing identity, Difference rule, Integral of cos
+integrate(sin(x)^2*cos(x)^2,x) :: Power-reducing identity
+integrate(cos(2x)^2,x) :: Power-reducing identity
+integrate(tan(x)^3,x) :: Pythagorean identity, Difference rule, u-substitution, Substitute back, Integral of tan
+integrate(tan(x)^2,x) :: Pythagorean identity, Difference rule, Integral of sec^2, Constant rule
+integrate(sec(x)^3,x) :: Integral of sec^3
+integrate(sin(x^2)^3,x) :: NONE
+integrate(sqrt(9-x^2),x) :: Trig substitution, Power-reducing identity, Back-substitute :: `x = 3*sin(t)` :: x*sqrt(9-x^2)/2
+integrate(1/(x^2*sqrt(x^2+4)),x) :: Trig substitution, Back-substitute :: `x = 2*tan(t)`
+integrate(sqrt(x^2-4)/x,x) :: Trig substitution, Back-substitute :: `x = 2*sec(t)`
+integrate(x^3/sqrt(4-x^2),x) :: Trig substitution, Back-substitute
+integrate(sqrt(x^2+2x),x) :: NONE
+integrate(x^3*sqrt(x^2+4),x) :: ANY
+integrate(x^2*sqrt(x^2-1),x) :: ANY
+integrate(tan(x)*sec(x)^3,x) :: u-substitution, Power rule, Substitute back :: Let `u = sec(x)`
+integrate(1/sqrt(x^2+4),x) :: Trig substitution, Integral of sec, Back-substitute
+integrate(1/sqrt(x^2-9),x) :: Trig substitution, Integral of sec, Back-substitute
+integrate(sqrt(x^2+4),x) :: Trig substitution, Integral of sec^3, Back-substitute
+integrate(1/(2u+1),u) :: =Log rule :: `w = 2*u+1`
+integrate(cos(3u),u) :: =Integral of cos :: `w = 3*u`
+integrate(u*cos(u^2),u) :: u-substitution, Integral of cos, Substitute back :: Let `w = u^2`
+integrate(x*e^x,x) :: Integration by parts, Integral of exp :: u = x
+integrate(x^2*e^x,x) :: Integration by parts, Integration by parts, Integral of exp
+integrate(x*ln(x),x) :: Integration by parts, Power rule :: u = ln(x)
+integrate(ln(x),x) :: Integration by parts, Constant rule
+integrate(atan(x),x) :: Integration by parts, u-substitution, Substitute back
+integrate(x*sin(x),x,0,pi) :: Integration by parts, Integral of cos, Evaluate at the bounds
+integrate(e^x*sin(x),x) :: Integration by parts, Integration by parts, The integral appears again :: -I` :: )/2`
+integrate(e^(2x)*cos(x),x) :: Integration by parts, Integration by parts, The integral appears again :: -I/4` :: )/(5/4)`
+integrate(e^x*cos(x),x) :: Integration by parts, Integration by parts, The integral appears again
+integrate(sin(x)*cos(x),x) :: u-substitution, Power rule, Substitute back
+integrate(ln(x)/x,x) :: u-substitution, Power rule, Substitute back :: Let `u = ln(x)`
+integrate(e^x/x,x) :: NONE
+# a stored variable: the problem shows its name, so steps on it would mislead (purged after)
+y:=3x+1 :: NONE
+diff(y,x,2) :: NONE
+diff(x*y,x) :: NONE
+integrate(y,x) :: NONE
+purge(y) :: NONE
+# display: no 1*, one identity in the problem's variable, constants combined, (sum) integrands, w when the variable is u
+integrate(sqrt(1-x^2),x) :: Trig substitution :: `x = sin(t)`, `dx = cos(t)*dt` :: `cos(t)^2 = (1+cos(2*t))/2` :: t/2+sin(2*t)/4
+integrate((2x+3)/(x^2+x+1),x) :: Split the numerator :: `2*x+3 = (2*x+1) + 2` :: `a = sqrt(3)/2`
+integrate(1/((x+1)*(x^2+4)),x) :: Partial fractions, Split the numerator :: `-x+1 = -1/2*(2*x) + 1`
+integrate(1/sqrt(x^2-9),x) :: Back-substitute :: ln(abs((x+sqrt(x^2-9))/3))
+diff(sin(u^2),u) :: Chain rule :: outer `sin(w)`, inner `w = u^2`
+integrate(sin(x)^3,x) :: Pythagorean identity :: integrate((u^2-1),u)
+integrate(sin(x)^2,x) :: Power-reducing identity :: `sin(x)^2 = (1-cos(2*x))/2` :: x/2-sin(2*x)/4
+# hyperbolics (sech, csch, coth are not giac functions: sech^2 is typed 1/cosh^2)
+diff(sinh(x),x) :: =Derivative of sinh
+diff(cosh(x^2),x) :: Chain rule, Power rule :: outer `cosh(u)`
+diff(tanh(3x),x) :: Chain rule :: outer `tanh(u)`
+diff(x*sinh(x),x) :: Product rule, Derivative of sinh
+diff(asinh(x),x) :: =Derivative of asinh
+diff(acosh(2x),x) :: Chain rule
+diff(atanh(x),x) :: =Derivative of atanh
+integrate(cosh(x),x) :: =Integral of cosh :: -> sinh(x)
+integrate(sinh(2x),x) :: =Integral of sinh :: `u = 2*x`: divide by `2` :: -> cosh(2*x)/2
+integrate(tanh(x),x) :: =Integral of tanh :: -> ln(cosh(x))
+integrate(1/cosh(x)^2,x) :: =Integral of sech^2 :: -> tanh(x)
+integrate(x*cosh(x),x) :: Integration by parts, Integral of sinh :: x*sinh(x)-cosh(x)+C
+integrate(sinh(x)*cosh(x)^2,x) :: u-substitution, Power rule, Substitute back
