@@ -136,3 +136,6 @@ integrate(tanh(x),x) :: =Integral of tanh :: -> ln(cosh(x))
 integrate(1/cosh(x)^2,x) :: =Integral of sech^2 :: -> tanh(x)
 integrate(x*cosh(x),x) :: Integration by parts, Integral of sinh :: x*sinh(x)-cosh(x)+C
 integrate(sinh(x)*cosh(x)^2,x) :: u-substitution, Power rule, Substitute back
+# a negative factor in parentheses: e^(-x)*(-1), not e^(-x)*-1
+diff((e^x-e^(-x))/2,x) :: Chain rule :: exp(-x)*(-1)
+diff(cos(-2x),x) :: Chain rule :: *(-2)

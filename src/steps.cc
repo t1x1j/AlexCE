@@ -103,6 +103,22 @@ static void unwrap_neg_diff(string & s){
     }
   }
 }
+// a negative factor after * or / in parentheses: exp(-x)*(-1), not exp(-x)*-1 (drawn e^-x·−1)
+static void paren_neg(string & s){
+  for (size_t p=s.find_first_of("*/");p!=string::npos;p=s.find_first_of("*/",p+1)){
+    if (p+1>=s.size() || s[p+1]!='-') continue;
+    size_t i=p+2;
+    int depth=0;
+    for (;i<s.size();++i){ // the factor: a number, a name, a call, a power
+      const char c=s[i];
+      if (c=='(') ++depth;
+      else if (c==')'){ if (!depth) break; --depth; }
+      else if (!depth && !isalnum((unsigned char)c) && c!='.' && c!='_' && c!='^') break;
+    }
+    s.insert(i,")");
+    s.insert(p+1,"(");
+  }
+}
 // constants put together for reading: a/b/c as a/(b*c), 1/q*(a/b) as a/(q*b) (multiplied out
 // when both are numbers)
 static gen tmul(const gen & a,const gen & b){ return a.type==_INT_ && b.type==_INT_?a*b:sym2(at_prod,a,b); }
@@ -138,6 +154,7 @@ static __attribute__((noinline)) string txt(const gen & g){
   textbook(s);
   paren_arg(s,"diff(",false);
   paren_arg(s,"integrate(",true);
+  paren_neg(s);
   unwrap_neg_diff(s);
   return s;
 }
