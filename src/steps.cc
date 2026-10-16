@@ -270,6 +270,12 @@ static bool rule(const gen & u,const gen & x,gen & r,string & label,string & cho
   else if (s==at_asin) fp=sym2(at_division,1,sym1(at_sqrt,sym2(at_binary_minus,1,sym2(at_pow,b,2))));
   else if (s==at_acos) fp=neg(sym2(at_division,1,sym1(at_sqrt,sym2(at_binary_minus,1,sym2(at_pow,b,2)))));
   else if (s==at_atan) fp=sym2(at_division,1,sym2(at_plus,1,sym2(at_pow,b,2)));
+  else if (s==at_sinh) fp=sym1(at_cosh,b);
+  else if (s==at_cosh) fp=sym1(at_sinh,b);
+  else if (s==at_tanh) fp=sym2(at_division,1,sym2(at_pow,sym1(at_cosh,b),2)); // (sech: not a giac function)
+  else if (s==at_asinh) fp=sym2(at_division,1,sym1(at_sqrt,sym2(at_plus,sym2(at_pow,b,2),1)));
+  else if (s==at_acosh) fp=sym2(at_division,1,sym1(at_sqrt,sym2(at_binary_minus,sym2(at_pow,b,2),1)));
+  else if (s==at_atanh) fp=sym2(at_division,1,sym2(at_binary_minus,1,sym2(at_pow,b,2)));
   else if (s==at_abs) fp=sym2(at_division,b,u);
   else return false;
   const string name=s.ptr()->s; // "sin"
@@ -309,7 +315,9 @@ static int expand(gen & g,const gen & x,string & label,string & choice){
 // in tan(3x/4), and never finds 0)
 static bool equal(const gen & a,const gen & b){
   const gen d=a-b;
-  return !interrupted && (is_zero(ratnormal(d,contextptr),contextptr) || is_zero(simplify(d,contextptr),contextptr));
+  return !interrupted && (is_zero(ratnormal(d,contextptr),contextptr) || is_zero(simplify(d,contextptr),contextptr)
+                          || ((contains(d,at_sinh) || contains(d,at_cosh) || contains(d,at_tanh)) // (no hyperbolic identities)
+                              && is_zero(simplify(hyp2exp(d,contextptr),contextptr),contextptr)));
 }
 // g (its diff nodes evaluated) equals the derivative d
 static bool same(const gen & g,const gen & d){ return equal(eval(g,1,contextptr),d); }
@@ -352,6 +360,8 @@ static const char * const TABLE[]={
   "sec*tan","sec(x)*tan(x)","sec(x)", "sec*tan","tan(x)*sec(x)","sec(x)",
   "csc*cot","csc(x)*cot(x)","-csc(x)", "csc*cot","cot(x)*csc(x)","-csc(x)",
   "sec^3","sec(x)^3","(sec(x)*tan(x)+ln(abs(sec(x)+tan(x))))/2",
+  "sinh","sinh(x)","cosh(x)", "cosh","cosh(x)","sinh(x)", "tanh","tanh(x)","ln(cosh(x))",
+  "sech^2","1/cosh(x)^2","tanh(x)",
   "1/(1+x^2)","1/(1+x^2)","atan(x)", "1/sqrt(1-x^2)","1/sqrt(1-x^2)","asin(x)", 0};
 // a of w = a*v+b (w linear in v, not v itself); 0 otherwise
 static gen lin_coef(const gen & w,const gen & v){
@@ -359,11 +369,11 @@ static gen lin_coef(const gen & w,const gen & v){
   const gen a=normal(derive(eval(w,1,contextptr),v,contextptr),contextptr);
   return free_of(a,v)?a:gen(0);
 }
-// the argument of f's first table function (exp, sin, cos, tan, cot, sec, csc), 0 if none
+// the argument of f's first table function (exp, sin, cos, tan, cot, sec, csc, sinh, cosh, tanh), 0 if none
 static gen inner(const gen & f){
   if (f.type!=_SYMB) return 0;
   const unary_function_ptr & s=f._SYMBptr->sommet;
-  if (s==at_exp || s==at_sin || s==at_cos || s==at_tan || s==at_cot || s==at_sec || s==at_csc) return f._SYMBptr->feuille;
+  if (s==at_exp || s==at_sin || s==at_cos || s==at_tan || s==at_cot || s==at_sec || s==at_csc || s==at_sinh || s==at_cosh || s==at_tanh) return f._SYMBptr->feuille;
   const vecteur a=args(f);
   for (unsigned i=0;i<a.size();++i){ const gen w=inner(a[i]); if (!is_zero(w)) return w; }
   return 0;
@@ -500,7 +510,9 @@ static __attribute__((noinline)) bool parts(const gen & f,const gen & v,gen & r,
   for (unsigned i=0;i<fs.size();++i)
     if (i!=k) rest.push_back(fs[i]);
   const gen U=fs[k],dV=rest.empty()?gen(1):prod(rest);
-  const gen V=normal(_integrate(makesequence(eval(dV,1,contextptr),v),contextptr),contextptr);
+  string tl,tc; // v from the table first (sinh(x) for cosh(x): giac answers in exponentials)
+  gen V=table_int(dV,v,tl,tc);
+  if (is_zero(V)) V=normal(_integrate(makesequence(eval(dV,1,contextptr),v),contextptr),contextptr);
   if (interrupted || is_undef(V) || V.type==_STRNG || contains(V,at_integrate)) return false;
   const gen dU=normal(derive(eval(U,1,contextptr),v,contextptr),contextptr),d=dvar(v);
   // the new integral as text: a long one is no textbook step (and parts again on it grows without
@@ -908,7 +920,9 @@ static int build_integral(const gen & in,const string & answer,string & problem,
   if (interrupted){ out.clear(); return STEPS_STOPPED; }
   if (a.size()==2){ // FlowCE's antiderivative too (they differ by a constant)
     if (!anti(A,f,x)){ out.clear(); return interrupted?STEPS_STOPPED:STEPS_NONE; }
-    step s={out.empty() || out.back().expr!=answer?"Simplify":"Add the constant","",answer+"+C"};
+    // the traced form when it keeps a sinh, cosh or tanh the answer wrote in exponentials (x sinh x - cosh x)
+    const bool hyp=(contains(F,at_sinh) || contains(F,at_cosh) || contains(F,at_tanh)) && !contains(A,at_sinh) && !contains(A,at_cosh) && !contains(A,at_tanh);
+    step s={hyp || out.empty() || out.back().expr!=answer?(hyp?"Add the constant":"Simplify"):"Add the constant","",(hyp?out.back().expr:answer)+"+C"};
     out.push_back(s);
     return STEPS_OK;
   }

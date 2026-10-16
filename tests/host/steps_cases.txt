@@ -122,3 +122,17 @@ integrate(1/sqrt(x^2-9),x) :: Back-substitute :: ln(abs((x+sqrt(x^2-9))/3))
 diff(sin(u^2),u) :: Chain rule :: outer `sin(w)`, inner `w = u^2`
 integrate(sin(x)^3,x) :: Pythagorean identity :: integrate((u^2-1),u)
 integrate(sin(x)^2,x) :: Power-reducing identity :: `sin(x)^2 = (1-cos(2*x))/2` :: x/2-sin(2*x)/4
+# hyperbolics (sech, csch, coth are not giac functions: sech^2 is typed 1/cosh^2)
+diff(sinh(x),x) :: =Derivative of sinh
+diff(cosh(x^2),x) :: Chain rule, Power rule :: outer `cosh(u)`
+diff(tanh(3x),x) :: Chain rule :: outer `tanh(u)`
+diff(x*sinh(x),x) :: Product rule, Derivative of sinh
+diff(asinh(x),x) :: =Derivative of asinh
+diff(acosh(2x),x) :: Chain rule
+diff(atanh(x),x) :: =Derivative of atanh
+integrate(cosh(x),x) :: =Integral of cosh :: -> sinh(x)
+integrate(sinh(2x),x) :: =Integral of sinh :: `u = 2*x`: divide by `2` :: -> cosh(2*x)/2
+integrate(tanh(x),x) :: =Integral of tanh :: -> ln(cosh(x))
+integrate(1/cosh(x)^2,x) :: =Integral of sech^2 :: -> tanh(x)
+integrate(x*cosh(x),x) :: Integration by parts, Integral of sinh :: x*sinh(x)-cosh(x)+C
+integrate(sinh(x)*cosh(x)^2,x) :: u-substitution, Power rule, Substitute back
