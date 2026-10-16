@@ -6,6 +6,7 @@
 </p>
 
 <p align="center">
+  <a href="https://t1x1j.github.io/AlexCE/"><img src="https://img.shields.io/badge/install-from_the_web-245ccc" alt="Install from the web"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License: GPL-3.0"></a>
   <img src="https://img.shields.io/badge/calculator-TI--84%20Plus%20CE-2a5bd7" alt="TI-84 Plus CE">
   <img src="https://img.shields.io/badge/engine-Giac-555" alt="Engine: Giac">
@@ -75,7 +76,7 @@ look, math drawn as you type it, and keys that work the way a TI user expects.
 
 ## Install
 
-**The easy way: install from the AlexCE page** (`bash site/build.sh AlexCE.b84`, then serve `_site/` on localhost). Plug in
+**The easy way: [install from the AlexCE page](https://t1x1j.github.io/AlexCE/#install).** Plug in
 the calculator, open the page in Chrome or Edge and click Install: it checks the calculator,
 erases its archive (after you agree), sends AlexCE and opens the installer. Then press `enter`
 once on the calculator: it installs and restarts by itself. On Windows it needs
