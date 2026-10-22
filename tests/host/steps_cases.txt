@@ -170,3 +170,19 @@ integrate(1/(x^2-4)^(3/2),x) :: Trig substitution, Back-substitute :: `x = 2*sec
 integrate(sqrt(x^2+2x+5),x) :: Complete the square, Trig substitution, Back-substitute :: `x+1 = 2*tan(t)`
 integrate(1/sqrt(x^2+6x+13),x) :: Complete the square, Trig substitution, Back-substitute
 integrate(1/(x^2+1)^2,x) :: Trig substitution, Power-reducing identity, Back-substitute :: `x = tan(t)`
+# second edge round (2026-10-22): a quadratic factor before a linear one (an index past the end)
+partfrac(1/(x^4+x^2),x) :: Factor the denominator, Set up the partial fractions, Solve for the constants
+partfrac((x^2+1)/((x+1)^2*(x^2+4)),x) :: Set up the partial fractions, Solve for the constants
+integrate(1/(x^4+x^2),x) :: Partial fractions
+integrate(ln(x)/x^2,x) :: Integration by parts :: `u = ln(x)`
+integrate(ln(x^2+1),x) :: Integration by parts, Polynomial division, Integral of 1/(u^2+a^2)
+integrate(sqrt(x^2-9)/x^2,x) :: ANY
+integrate(sqrt(x)/(1+x),x) :: u-substitution, Polynomial division :: `x = u^2`
+integrate(e^sqrt(x),x) :: u-substitution, Integration by parts
+integrate(sin(sqrt(x)),x) :: u-substitution, Integration by parts
+integrate(e^x/(e^(2x)+1),x) :: u-substitution, Integral of 1/(1+x^2)
+integrate(x^5*e^(x^3),x) :: u-substitution, Integration by parts
+integrate(tan(x)^2*sec(x)^4,x) :: u-substitution, Sum rule :: Let `u = tan(x)`
+integrate(csc(x)^4,x) :: Pythagorean identity, u-substitution :: `csc(x)^2 = 1+cot(x)^2`
+integrate(csc(x)^3,x) :: =Integral of csc^3
+integrate(cos(x)*cos(x/2),x) :: Product-to-sum identity, Integral of cos

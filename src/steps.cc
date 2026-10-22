@@ -139,7 +139,7 @@ static __attribute__((noinline)) gen tidy(const gen & g){
   const unary_function_ptr & s=g._SYMBptr->sommet;
   if (n.type==_VECT && n._VECTptr->size()==2){
     const gen a=n._VECTptr->front(),b=n._VECTptr->back();
-    if (s==at_division && is_op(a,at_division)) return sym2(at_division,args(a)[0],tmul(args(a)[1],b));
+    if (s==at_division && is_op(a,at_division)){ const gen d=tmul(args(a)[1],b); return is_one(d)?args(a)[0]:sym2(at_division,args(a)[0],d); } // (not sin(x/2)/1)
     if (s==at_prod){
       for (int k=0;k<2;++k){
         const gen & c=k?b:a, & d=k?a:b;
@@ -345,9 +345,33 @@ static int expand(gen & g,const gen & x,string & label,string & choice){
 
 // a equals b: ratnormal first (simplify alone rewrites sin(3x) in tan(3x/2), then the difference
 // in tan(3x/4), and never finds 0)
+// a-b at a few points (each variable its own value): 1 zero at 3 or more (to 1e-9 of their size), 0
+// not zero at one, -1 too few points (a root of a negative, a log of 0: no real value there).
+// giac's simplify took most of the steps' time (seconds on the calculator for trig integrals)
+static __attribute__((noinline)) int numeq(const gen & a,const gen & b){
+  vecteur ids=lidnt(a-b),ok;
+  for (unsigned i=0;i<ids.size();++i) if (evalf(ids[i],1,contextptr).type!=_DOUBLE_) ok.push_back(ids[i]); // (not pi)
+  static const double P[]={0.3719,1.2953,2.6417,4.1583,7.3069,-0.8461};
+  int n=0;
+  for (int p=0;p<6;++p){
+    vecteur vals;
+    for (unsigned i=0;i<ok.size();++i) vals.push_back(P[(p+i)%6]);
+    const gen ea=evalf(subst(a,ok,vals,false,contextptr),1,contextptr),eb=evalf(subst(b,ok,vals,false,contextptr),1,contextptr);
+    if (interrupted) return -1;
+    if (ea.type!=_DOUBLE_ || eb.type!=_DOUBLE_ || ea._DOUBLE_val!=ea._DOUBLE_val || eb._DOUBLE_val!=eb._DOUBLE_val) continue;
+    const double x=ea._DOUBLE_val,y=eb._DOUBLE_val;
+    if (std::abs(x-y)>1e-9*(1+std::abs(x)+std::abs(y))) return 0;
+    ++n;
+  }
+  return n>=3?1:-1;
+}
 static bool equal(const gen & a,const gen & b){
   const gen d=a-b;
-  return !interrupted && (is_zero(ratnormal(d,contextptr),contextptr) || is_zero(simplify(d,contextptr),contextptr)
+  if (interrupted) return false;
+  if (is_zero(ratnormal(d,contextptr),contextptr)) return true;
+  const int ne=numeq(a,b);
+  if (ne>=0) return ne==1;
+  return !interrupted && (is_zero(simplify(d,contextptr),contextptr)
                           || ((contains(d,at_sinh) || contains(d,at_cosh) || contains(d,at_tanh)) // (no hyperbolic identities)
                               && is_zero(simplify(hyp2exp(d,contextptr),contextptr),contextptr)));
 }
@@ -395,6 +419,7 @@ static const char * const TABLE[]={
   "sec*tan","sec(x)*tan(x)","sec(x)", "sec*tan","tan(x)*sec(x)","sec(x)",
   "csc*cot","csc(x)*cot(x)","-csc(x)", "csc*cot","cot(x)*csc(x)","-csc(x)",
   "sec^3","sec(x)^3","(sec(x)*tan(x)+ln(abs(sec(x)+tan(x))))/2",
+  "csc^3","csc(x)^3","(ln(abs(csc(x)-cot(x)))-csc(x)*cot(x))/2",
   "sinh","sinh(x)","cosh(x)", "cosh","cosh(x)","sinh(x)", "tanh","tanh(x)","ln(cosh(x))",
   "sech^2","1/cosh(x)^2","tanh(x)",
   "1/(1+x^2)","1/(1+x^2)","atan(x)", "1/sqrt(1-x^2)","1/sqrt(1-x^2)","asin(x)", 0};
@@ -430,7 +455,7 @@ static gen table_int(const gen & f,const gen & v,string & label,string & choice)
     for (int k=0;TABLE[k];k+=3){
       if (pass && TABLE[k][0]=='1') continue; // (1/(1+x^2), 1/sqrt(1-x^2): the argument v only)
       const gen p=quotesubst(gen(TABLE[k+1],contextptr),x,w,contextptr);
-      if (f==p || (TABLE[k][0]=='1' && is_op(f,at_division) && equal(f,p))){
+      if (f==p || (pass && eval(f,1,contextptr)==eval(p,1,contextptr)) || (TABLE[k][0]=='1' && is_op(f,at_division) && equal(f,p))){
         label=string("Integral of ")+TABLE[k];
         const gen r=quotesubst(gen(TABLE[k+2],contextptr),x,w,contextptr);
         if (!pass) return r;
@@ -505,17 +530,25 @@ static __attribute__((noinline)) bool usub(const gen & f,const gen & v,gen & r,s
   if (is_zero(u)) return false;
   for (unsigned i=0;i<c.size();++i){
     const gen & b=c[i];
-    const gen db=normal(derive(eval(b,1,contextptr),v,contextptr),contextptr);
+    const gen db=normal(derive(eval(b,1,contextptr),v,contextptr),contextptr),db0=derive(eval(b,1,contextptr),v,contextptr);
     if (is_zero(db) || interrupted) continue;
     // b replaced by u before simplifying: what is left of v must cancel (x/(x^2+1) over 2x: 1/(2u));
     // evaluated (normal leaves an unevaluated 2x*cos(u)/(2x) as is), then parsed again from its
     // text (evaluated, 1/u is inv(u): the rules know the typed forms)
     // u = tan(w): sec(w)^2 is 1+u^2 (giac's derivative of tan is 1+tan^2), du shown as sec(w)^2 dx;
     // u = sec(w): du = sec(w)tan(w) dx kept as written (giac's is sin/cos^2: tan would not cancel)
-    gen ff=f,dd=db,dshow=db;
+    gen ff=is_op(b,at_exp)?expexpand(f,contextptr):f,dd=db,dshow=db0.print(contextptr).size()<db.print(contextptr).size()?db0:db; // (u = e^x: e^(2x) as (e^x)^2, so u^2; du = 1/(2*sqrt(x)) dx, not rationalized)
+    if (is_op(b,at_sqrt)) // du = w'/(2*sqrt(w)) dx, as written on paper (giac's is rationalized)
+      dshow=sym2(at_division,normal(derive(eval(args(b)[0],1,contextptr),v,contextptr),contextptr),mul(2,b));
     if (is_op(b,at_tan) || is_op(b,at_cot)){
       const gen s2=sym2(at_pow,sym1(is_op(b,at_tan)?at_sec:at_csc,b._SYMBptr->feuille),2);
       ff=quotesubst(f,s2,sym2(at_plus,1,sym2(at_pow,b,2)),contextptr);
+      const vecteur ps=lop(ff,at_pow); // (sec(x)^4: (1+u^2)^2)
+      for (unsigned i=0;i<ps.size();++i){
+        const vecteur pa=args(ps[i]); // (a copy: args returns one; references into it would dangle)
+        const gen pb=pa[0],pe=pa[1];
+        if (pb==args(s2)[0] && pe.type==_INT_ && pe.val%2==0) ff=quotesubst(ff,ps[i],pw(sym2(at_plus,1,sym2(at_pow,b,2)),pe.val/2),contextptr);
+      }
       dshow=cmul(normal(db/(1+b*b),contextptr),s2);
       if (is_op(b,at_cot)){
         const gen w1=normal(derive(eval(b._SYMBptr->feuille,1,contextptr),v,contextptr),contextptr);
@@ -532,16 +565,33 @@ static __attribute__((noinline)) bool usub(const gen & f,const gen & v,gen & r,s
     // only the textbook inverses: u linear (x = u-1), u = c*x^2+k (x^2 = (u-k)/c), u = ln(x) (x = e^u);
     // others (u = 1+x^3: cube roots) only make an integral in u nothing finishes, slowly
     const gen eb=eval(b,1,contextptr);
-    const bool inv=!is_zero(lin_coef(b,v)) || (eb==sym1(at_ln,v) && argof(f,b))
-                   || (poly_v(eb,v) && _degree(makesequence(eb,v),contextptr)==2 && is_zero(_coeff(makesequence(eb,v,1),contextptr)));
+    const gen dg=poly_v(eb,v)?_degree(makesequence(eb,v),contextptr):gen(0);
+    // c*x^2+k, or c*x^n alone (x^3: x = u^(1/3) with nothing added; 1+x^3: cube roots of 1+... no textbook takes)
+    const gen k0=dg.type==_INT_?_coeff(makesequence(eb,v,0),contextptr):gen(0);
+    const bool mono=dg.type==_INT_ && dg.val>=2 && (dg.val==2 || is_zero(k0)) && is_zero(normal(eb-_coeff(makesequence(eb,v,dg.val),contextptr)*pw(v,dg)-k0,contextptr));
+    const bool inv=!is_zero(lin_coef(b,v)) || (eb==sym1(at_ln,v) && argof(f,b)) || mono
+                   || (is_op(eb,at_sqrt) && args(eb)[0]==v) || (is_op(eb,at_pow) && args(eb)[0]==v && args(eb)[1]==fraction(1,2))
+                   || (is_op(eb,at_exp) && (args(eb)[0]==v || !is_zero(lin_coef(args(eb)[0],v))));
     if (inv && !free_of(G0,v) && !interrupted){ // what is left of x from u = b solved for x (x^2 = u: x = sqrt(u))
       const gen S=_solve(makesequence(sym2(at_equal,eb,u),v),contextptr);
       gen xu=0;
-      if (S.type==_VECT)
-        for (unsigned i=0;i<S._VECTptr->size();++i) if (!has_i((*S._VECTptr)[i])) xu=(*S._VECTptr)[i]; // (the last real one: x = sqrt(1-u))
+      if (S.type==_VECT) // a real one, not a negative root (x = sqrt(u), not -sqrt(u))
+        for (unsigned i=0;i<S._VECTptr->size();++i){
+          const gen & si=(*S._VECTptr)[i];
+          if (!has_i(si) && (is_zero(xu) || !is_op(si,at_neg))) xu=si;
+        }
+      // u = c*x^2+k: only when what is left of x is even in x (x^2*e^u, not ln(x)/x^3: by parts)
+      if (!is_zero(xu) && mono && dg.val%2==0 && !is_zero(normal(G0-subst(G0,v,-v,false,contextptr),contextptr))) xu=0;
       if (!is_zero(xu)){
         G0=normal(eval(subst(G0,v,xu,false,contextptr),1,contextptr),contextptr);
-        if (!is_zero(lin_coef(b,v))) xs=", "+meq(v,xu);
+        if (!(eb==sym1(at_ln,v)) && !is_op(eb,at_exp) && !mono && is_zero(lin_coef(b,v))) // u = sqrt(x) >= 0: sqrt(u^2) = |u| = u
+          G0=normal(eval(quotesubst(G0,sym1(at_abs,u),u,contextptr),1,contextptr),contextptr);
+        if (!is_zero(lin_coef(b,v)) || !mono) xs=", "+meq(v,xu);
+        gen P1=1,X1=0;
+        bool root=contains(G0,at_sqrt); // (or u^(1/2), as giac may write it)
+        const vecteur gp=lop(G0,at_pow);
+        for (unsigned i=0;i<gp.size();++i) if (args(gp[i])[1].type==_FRAC) root=true;
+        if (is_zero(lin_coef(b,v)) && (root || contains(G0,at_ln)) && !vfac(G0,u,P1,X1,1)) continue; // (not sqrt(u)/(2u+8), nor ln(u) from x = ln(u))
       }
     }
     if (!free_of(G0,v) || has_i(G0) || interrupted) continue;
@@ -581,19 +631,36 @@ static int liate(const gen & g,const gen & v){
 static int parts_count; // integrations by parts in this problem (at most 4)
 // integration by parts: f = u*dv (u by LIATE, dv the rest, v its antiderivative by giac),
 // u*v - integral of v*du
+static gen cfold(const gen & t,const gen & v,gen & k); // (below)
 static __attribute__((noinline)) bool parts(const gen & f,const gen & v,gen & r,string & label,string & choice){
   if (parts_count>=4) return false;
-  const vecteur fs=is_op(f,at_prod)?args(f):vecteur(1,f);
+  // the factors; a quotient p/q as p's and q^-1 (ln(x)/x^2: u = ln(x), dv = x^-2 dx)
+  vecteur fs=is_op(f,at_prod)?args(f):vecteur(1,f);
+  if (is_op(f,at_division) && !free_of(args(f)[1],v)){
+    fs=is_op(args(f)[0],at_prod)?args(args(f)[0]):vecteur(1,args(f)[0]);
+    const gen q=args(f)[1]; // (x^2: x^(-2), not (x^2)^(-1))
+    fs.push_back(is_op(q,at_pow) && free_of(args(q)[1],v)?sym2(at_pow,args(q)[0],eval(-args(q)[1],1,contextptr)):sym2(at_pow,q,-1));
+  }
   if (fs.size()==1 && liate(f,v)>1) return false; // alone: ln, inverse trig (dv = dx)
   unsigned k=0;
   for (unsigned i=1;i<fs.size();++i)
     if (liate(fs[i],v)<liate(fs[k],v)) k=i;
+  bool trig=true; // trig times trig only (no exponential, power...): no textbook integrates those by parts
+  for (unsigned i=0;i<fs.size();++i) if (liate(fs[i],v)!=3 && !free_of(fs[i],v)) trig=false;
+  if (trig) return false;
   vecteur rest;
   for (unsigned i=0;i<fs.size();++i)
     if (i!=k) rest.push_back(fs[i]);
   const gen U=fs[k],dV=rest.empty()?gen(1):prod(rest);
+  if (free_of(U,v)) return false; // (u = sqrt(2), du = 0: no step)
   string tl,tc; // v from the table first (sinh(x) for cosh(x): giac answers in exponentials)
-  gen V=table_int(dV,v,tl,tc);
+  gen kd=1;
+  const gen dr=cfold(dV,v,kd); // (-exp(x): -1 times the table's exp(x))
+  gen V=table_int(dr,v,tl,tc),Pd=1,Xd=0;
+  if (!is_zero(V) && !is_one(kd)) V=cmul(kd,V);
+  // else only a polynomial times a power of x (x^2, x^-2): a v the reader finds at once, not a
+  // ln|2u+8|/2 giac worked out unseen
+  if (is_zero(V) && !vfac(dV,v,Pd,Xd,1)) return false;
   if (is_zero(V)) V=normal(_integrate(makesequence(eval(dV,1,contextptr),v),contextptr),contextptr);
   if (interrupted || is_undef(V) || V.type==_STRNG || contains(V,at_integrate)) return false;
   const gen dU0=derive(eval(U,1,contextptr),v,contextptr),dUn=normal(dU0,contextptr),d=dvar(v);
@@ -706,16 +773,17 @@ static __attribute__((noinline)) gen pf_steps(const gen & e,const gen & v,vector
   // putting in a root: the highest power's unknown of each linear factor; the rest by coefficients
   string ch;
   vecteur known(U.size(),gen(0));
-  unsigned t=0;
+  unsigned tu=0,tt=0; // after factor k: its unknowns (2 a term for a quadratic) and its terms
   for (unsigned k=0;k<fs.size();++k){
     const bool q=deg_v(fs[k],v)==2;
-    t+=(q?2:1)*ms[k];
+    tu+=(q?2:1)*ms[k];
+    tt+=ms[k];
     if (q) continue;
     const gen x0=_solve(makesequence(fs[k],v),contextptr);
     if (x0.type!=_VECT || x0._VECTptr->size()!=1) return 0;
-    const gen r0=x0._VECTptr->front(),cv=eval(quotesubst(cofs[t-1],v,r0,contextptr),1,contextptr);
-    ch+=(ch.empty()?"":"\n")+meq(v,r0)+": "+meq(subst(N,v,r0,false,contextptr),mul(cv,U[t-1]))+", "+meq(U[t-1],val[t-1]);
-    known[t-1]=1;
+    const gen r0=x0._VECTptr->front(),cv=eval(quotesubst(cofs[tt-1],v,r0,contextptr),1,contextptr);
+    ch+=(ch.empty()?"":"\n")+meq(v,r0)+": "+meq(subst(N,v,r0,false,contextptr),mul(cv,U[tu-1]))+", "+meq(U[tu-1],val[tu-1]);
+    known[tu-1]=1;
   }
   vecteur left;
   for (unsigned i=0;i<U.size();++i) if (is_zero(known[i])) left.push_back(U[i]);
@@ -932,11 +1000,11 @@ static bool sincos(const gen & f,const gen & v,gen & c,gen & w,gen & m,gen & n){
 // (tlin); tan^n (n >= 2): tan^(n-2)*(sec^2 - 1)
 static __attribute__((noinline)) bool trig_rewrite(const gen & f,const gen & v,gen & r,string & label,string & choice){
   if (is_op(f,at_pow) && args(f)[1].type==_INT_){
-    const gen t=args(f)[0],w=is_op(t,at_sec) || is_op(t,at_cot)?t._SYMBptr->feuille:gen(0);
+    const gen t=args(f)[0],w=is_op(t,at_sec) || is_op(t,at_cot) || is_op(t,at_csc)?t._SYMBptr->feuille:gen(0);
     const int n=args(f)[1].val;
     if (!is_zero(w) && (w==v || !is_zero(lin_coef(w,v)))){
-      if (is_op(t,at_sec) && n>=4 && n%2==0){ // sec^n = (1+tan^2)^((n-2)/2)*sec^2: then u = tan
-        const gen s2=sym2(at_pow,t,2),id=sym2(at_plus,1,sym2(at_pow,sym1(at_tan,w),2));
+      if ((is_op(t,at_sec) || is_op(t,at_csc)) && n>=4 && n%2==0){ // sec^n = (1+tan^2)^((n-2)/2)*sec^2: then u = tan (csc, cot)
+        const gen s2=sym2(at_pow,t,2),id=sym2(at_plus,1,sym2(at_pow,sym1(is_op(t,at_sec)?at_tan:at_cot,w),2));
         r=inode(mul(pw(id,(n-2)/2),s2),v);
         label="Pythagorean identity";
         choice=meq(s2,id);
@@ -955,7 +1023,7 @@ static __attribute__((noinline)) bool trig_rewrite(const gen & f,const gen & v,g
     const gen p=args(f)[0],q=args(f)[1];
     const bool ps=is_op(p,at_sin),qs=is_op(q,at_sin);
     if ((ps || is_op(p,at_cos)) && (qs || is_op(q,at_cos)) && !(p._SYMBptr->feuille==q._SYMBptr->feuille)
-        && !is_zero(lin_coef(p._SYMBptr->feuille,v)) && !is_zero(lin_coef(q._SYMBptr->feuille,v))){
+        && (p._SYMBptr->feuille==v || !is_zero(lin_coef(p._SYMBptr->feuille,v))) && (q._SYMBptr->feuille==v || !is_zero(lin_coef(q._SYMBptr->feuille,v)))){
       r=inode(gen(_tlin(eval(f,1,contextptr),contextptr).print(contextptr),contextptr),v);
       label="Product-to-sum identity";
       choice=m(ps!=qs?"sin(A)*cos(B) = (sin(A+B)+sin(A-B))/2":ps?"sin(A)*sin(B) = (cos(A-B)-cos(A+B))/2":"cos(A)*cos(B) = (cos(A-B)+cos(A+B))/2");
