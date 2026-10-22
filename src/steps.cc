@@ -121,7 +121,7 @@ static void paren_neg(string & s){
 }
 // constants put together for reading: a/b/c as a/(b*c), 1/q*(a/b) as a/(q*b) (multiplied out
 // when both are numbers)
-static gen tmul(const gen & a,const gen & b){ return a.type==_INT_ && b.type==_INT_?a*b:sym2(at_prod,a,b); }
+static gen tmul(const gen & a,const gen & b){ return lidnt(a).empty() && lidnt(b).empty()?eval(a*b,1,contextptr):sym2(at_prod,a,b); }
 static __attribute__((noinline)) gen tidy(const gen & g){
   if (g.type!=_SYMB) return g;
   const gen & f=g._SYMBptr->feuille;
@@ -572,7 +572,109 @@ static gen rat_v(const gen & f,const gen & v){
 }
 // a rational function of v: division first when not proper (Polynomial division), else the
 // decomposition (Partial fractions); one term left (an irreducible quadratic below) goes to split_num
-static __attribute__((noinline)) bool pfrac(const gen & f,const gen & v,gen & r,string & label,string & choice){
+// partial fraction decomposition of e = N/D (proper, rational in v) as on paper: D factored, one
+// unknown per term (A/(x-a), B/(x-a)^2, (Cx+E)/q for an irreducible quadratic q), denominators
+// cleared, the unknowns found by putting in each linear factor's root (for its highest power) and
+// the rest by matching coefficients. Its steps go to out; returns the decomposition (a sum), 0 if
+// none (more than 7 unknowns, a factor of degree 3 or more, a name A, B... in use)
+static __attribute__((noinline)) gen pf_steps(const gen & e,const gen & v,vector<step> & out){
+  const gen N=_numer(e,contextptr),D=_denom(e,contextptr),F=_factors(D,contextptr);
+  if (F.type!=_VECT) return 0;
+  const vecteur & fl=*F._VECTptr;
+  gen c=1;
+  vecteur fs,U,nums,cofs,terms;
+  vector<int> ms;
+  for (unsigned i=0;i+1<fl.size();i+=2){
+    if (free_of(fl[i],v)){ c=c*pow(fl[i],fl[i+1],contextptr); continue; }
+    const gen d=deg_v(fl[i],v);
+    if (fl[i+1].type!=_INT_ || d.type!=_INT_ || d.val>2) return 0;
+    fs.push_back(fl[i]);
+    ms.push_back(fl[i+1].val);
+  }
+  gen Dt=c; // D factored, as written
+  for (unsigned k=0;k<fs.size();++k) Dt=mul(Dt,pw(fs[k],ms[k]));
+  static const char names[]="ABCEFGH";
+  int u=0;
+  for (unsigned k=0;k<fs.size();++k)
+    for (int j=1;j<=ms[k];++j){
+      const bool q=deg_v(fs[k],v)==2;
+      if (u+(q?2:1)>7) return 0;
+      gen num;
+      for (int t=0;t<(q?2:1);++t){
+        const gen a(string(1,names[u++]),contextptr);
+        if (!(eval(a,1,contextptr)==a) || contains(e,a)) return 0;
+        U.push_back(a);
+        num=t?add(makevecteur(mul(num,v),a)):a;
+      }
+      gen cof=c; // the term's numerator times cof: its part of N once denominators are cleared
+      for (unsigned l=0;l<fs.size();++l) cof=mul(cof,pw(fs[l],ms[l]-(l==k?j:0)));
+      nums.push_back(num);
+      cofs.push_back(cof);
+      terms.push_back(sym2(at_division,num,pw(fs[k],j)));
+    }
+  vecteur rhs;
+  for (unsigned i=0;i<nums.size();++i) rhs.push_back(mul(nums[i],cofs[i]));
+  const gen R=add(rhs),E=normal(eval(R,1,contextptr)-N,contextptr),L=_coeff(makesequence(E,v),contextptr);
+  if (L.type!=_VECT) return 0;
+  const vecteur & co=*L._VECTptr;
+  const gen S=_linsolve(makesequence(gen(co),gen(U)),contextptr);
+  if (S.type!=_VECT || S._VECTptr->size()!=U.size() || interrupted) return 0;
+  const vecteur & val=*S._VECTptr;
+  // the decomposition: the values put in, constants over the denominator (1/(4*x), not 1/4/x)
+  vecteur P;
+  for (unsigned i=0;i<nums.size();++i){
+    const gen n=normal(subst(nums[i],U,val,false,contextptr),contextptr),q=args(terms[i])[1];
+    if (is_zero(n)) continue;
+    const gen nn=_numer(n,contextptr),dn=_denom(n,contextptr),ng=is_strictly_positive(-nn,contextptr)?-nn:nn,t=sym2(at_division,ng,mul(dn,q));
+    P.push_back(ng==nn?t:neg(t)); // (-x+1)/(5*(x^2+4)), -1/(4*(x+2))
+  }
+  const gen Pg=tidy(gen(add(P).print(contextptr),contextptr));
+  if (P.size()<2 || !equal(eval(Pg,1,contextptr),e)) return 0;
+  // the steps
+  if (txt(Dt)!=txt(D)){
+    step s={"Factor the denominator",m(txt(D)+" = "+txt(Dt)),txt(sym2(at_division,N,Dt))};
+    out.push_back(s);
+  }
+  step s1={"Set up the partial fractions","one term for each factor (and each power)",txt(add(terms))};
+  out.push_back(s1);
+  step s2={"Clear the denominators","multiply both sides by "+m(Dt),txt(N)+" = "+txt(R)};
+  out.push_back(s2);
+  // putting in a root: the highest power's unknown of each linear factor; the rest by coefficients
+  string ch;
+  vecteur known(U.size(),gen(0));
+  unsigned t=0;
+  for (unsigned k=0;k<fs.size();++k){
+    const bool q=deg_v(fs[k],v)==2;
+    t+=(q?2:1)*ms[k];
+    if (q) continue;
+    const gen x0=_solve(makesequence(fs[k],v),contextptr);
+    if (x0.type!=_VECT || x0._VECTptr->size()!=1) return 0;
+    const gen r0=x0._VECTptr->front(),cv=eval(quotesubst(cofs[t-1],v,r0,contextptr),1,contextptr);
+    ch+=(ch.empty()?"":"\n")+m(txt(v)+" = "+txt(r0))+": "+m(txt(subst(N,v,r0,false,contextptr))+" = "+txt(mul(cv,U[t-1])))+", "+m(txt(U[t-1])+" = "+txt(val[t-1]));
+    known[t-1]=1;
+  }
+  vecteur left;
+  for (unsigned i=0;i<U.size();++i) if (is_zero(known[i])) left.push_back(U[i]);
+  if (!left.empty()){
+    ch+=(ch.empty()?"":"\n")+string("match the coefficients:");
+    unsigned shown=0;
+    for (unsigned i=0;i<co.size() && shown<left.size();++i){
+      bool has=false;
+      for (unsigned l=0;l<left.size();++l) if (contains(co[i],left[l])) has=true;
+      if (!has) continue;
+      const int p=co.size()-1-i;
+      const gen ci=co[i],cN=_coeff(makesequence(N,v,p),contextptr);
+      ch+="\n"+m(txt(pw(v,p)))+": "+m(txt(normal(ci+cN,contextptr))+" = "+txt(cN));
+      ++shown;
+    }
+    for (unsigned i=0;i<U.size();++i)
+      if (is_zero(known[i])) ch+="\n"+m(txt(U[i])+" = "+txt(val[i]));
+  }
+  step s3={"Solve for the constants",ch,txt(Pg)};
+  out.push_back(s3);
+  return Pg;
+}
+static __attribute__((noinline)) bool pfrac(const gen & f,const gen & v,gen & r,string & label,string & choice,vector<step> & pre){
   const gen e=rat_v(f,v);
   if (is_zero(e)) return false;
   const gen N=_numer(e,contextptr),D=_denom(e,contextptr);
@@ -587,7 +689,11 @@ static __attribute__((noinline)) bool pfrac(const gen & f,const gen & v,gen & r,
     choice=m(txt(f)+" = "+txt(Q)+(is_zero(R)?string():" + "+txt(RD)));
     return true;
   }
-  const gen P=tidy(gen(_partfrac(makesequence(e,v),contextptr).print(contextptr),contextptr));
+  // the decomposition worked out (its steps before this one), else giac's at once
+  vector<step> st;
+  gen P=pf_steps(e,v,st);
+  if (is_zero(P)) P=tidy(gen(_partfrac(makesequence(e,v),contextptr).print(contextptr),contextptr));
+  else pre.insert(pre.end(),st.begin(),st.end());
   if (!is_op(P,at_plus) && !is_op(P,at_binary_minus)) return false;
   r=inode(P,v);
   label="Partial fractions";
@@ -873,7 +979,7 @@ static __attribute__((noinline)) bool irule(const gen & f,const gen & v,gen & r,
   }
   r=table_int(f,v,label,choice);
   if (!is_zero(r) || trig_rewrite(f,v,r,label,choice)) return true;
-  return usub(f,v,r,label,choice,pre) || trig_sub(f,v,r,label,choice,pre) || pfrac(f,v,r,label,choice) || split_num(f,v,r,label,choice) || parts(f,v,r,label,choice);
+  return usub(f,v,r,label,choice,pre) || trig_sub(f,v,r,label,choice,pre) || pfrac(f,v,r,label,choice,pre) || split_num(f,v,r,label,choice) || parts(f,v,r,label,choice);
 }
 
 // the first integrate(.,v) node of E (leftmost, outermost) replaced by its rule: 1 done, 0 no node
@@ -959,7 +1065,35 @@ static int build_integral(const gen & in,const string & answer,string & problem,
 
 int steps_applicable(const char * s){
   while (*s==' ') ++s;
-  return !strncmp(s,"diff(",5) || !strncmp(s,"integrate(",10);
+  return !strncmp(s,"diff(",5) || !strncmp(s,"integrate(",10) || !strncmp(s,"partfrac(",9);
+}
+
+// partfrac(f[,x]): polynomial division first when not proper, then the decomposition's steps; the
+// last is FlowCE's answer
+static int build_partfrac(const gen & in,const string & answer,string & problem,vector<step> & out){
+  const vecteur a=args(in);
+  const gen v=a.size()>1?a[1]:gen("x",contextptr);
+  if (v.type!=_IDNT) return STEPS_NONE;
+  problem=txt(in);
+  gen e=rat_v(a[0],v),Q=0;
+  if (is_zero(e)) return STEPS_NONE;
+  const gen N=_numer(e,contextptr),D=_denom(e,contextptr),dn=deg_v(N,v),dd=deg_v(D,v);
+  if (dn.type!=_INT_ || dd.type!=_INT_ || free_of(D,v)) return STEPS_NONE;
+  if (dn.val>=dd.val){
+    Q=_quo(makesequence(N,D,v),contextptr);
+    e=normal(_rem(makesequence(N,D,v),contextptr)/D,contextptr);
+    step s={"Polynomial division",m(txt(a[0])+" = "+txt(Q)+" + "+txt(e)),txt(sym2(at_plus,Q,e))};
+    out.push_back(s);
+  }
+  gen P=pf_steps(e,v,out);
+  if (is_zero(P) && !is_zero(Q)) P=e; // (x^3+1)/(x^2-1) = x + 1/(x-1): nothing left to split
+  if (is_zero(P) || interrupted || !equal(eval(sym2(at_plus,Q,P),1,contextptr),eval(gen(answer,contextptr),1,contextptr))){
+    out.clear();
+    return interrupted?STEPS_STOPPED:STEPS_NONE;
+  }
+  step s={"Simplify","",answer};
+  if (out.back().expr!=answer) out.push_back(s);
+  return STEPS_OK;
 }
 
 int steps_build(const char * input,const string & answer,string & problem,vector<step> & out){
@@ -981,6 +1115,7 @@ int steps_build(const char * input,const string & answer,string & problem,vector
       if (ids[i]!=a[1] && contains(eval(ids[i],1,contextptr),a[1])) return STEPS_NONE;
     return build_integral(in,answer,problem,out);
   }
+  if (is_op(in,at_partfrac)) return build_partfrac(in,answer,problem,out);
   if (!is_op(in,at_diff)) return STEPS_NONE;
   const vecteur a=args(in);
   if (a.size()<2 || a.size()>3 || a[1].type!=_IDNT) return STEPS_NONE;

@@ -68,7 +68,7 @@ integrate((x+1)*(x-2),x) :: Expand, Difference rule
 integrate((1-x^2)^2,x) :: Expand
 integrate(1/(x^2-1),x) :: Partial fractions, Difference rule, Log rule, Log rule
 integrate((x^3+1)/(x^2-1),x) :: Polynomial division, Power rule, Log rule
-integrate(1/(x*(x+1)^2),x) :: Partial fractions, Log rule, Power rule, Log rule
+integrate(1/(x*(x+1)^2),x) :: Partial fractions, Log rule, Log rule, Power rule
 integrate((3x+5)/((x-1)*(x^2+1)),x) :: Partial fractions, Log rule, Split the numerator
 integrate((x+4)/(x^2+4x+8),x) :: Split the numerator, u-substitution, Complete the square, Integral of 1/(u^2+a^2)
 integrate(1/(4x^2-4x+3),x) :: Complete the square, Integral of 1/(u^2+a^2)
@@ -139,3 +139,11 @@ integrate(sinh(x)*cosh(x)^2,x) :: u-substitution, Power rule, Substitute back
 # a negative factor in parentheses: e^(-x)*(-1), not e^(-x)*-1
 diff((e^x-e^(-x))/2,x) :: Chain rule :: exp(-x)*(-1)
 diff(cos(-2x),x) :: Chain rule :: *(-2)
+# partial fraction decomposition, its own steps: partfrac(f,x), and inside integrals
+partfrac(1/(x^3+4x^2+4x),x) :: Factor the denominator, Set up the partial fractions, Clear the denominators, Solve for the constants :: `x*(x+2)^2` :: `A = 1/4` :: `B = -1/4` :: `C = -1/2`
+partfrac(1/(x^2-1),x) :: Factor the denominator, Set up the partial fractions, Clear the denominators, Solve for the constants :: `A = 1/2` :: `B = -1/2`
+partfrac(1/(x^3+x),x) :: Factor the denominator, Set up the partial fractions, Clear the denominators, Solve for the constants :: `A = 1` :: `B = -1`
+partfrac((3x+5)/((x-1)*(x^2+1)),x) :: Set up the partial fractions, Clear the denominators, Solve for the constants :: `A = 4`
+partfrac((x^3+1)/(x^2-1),x) :: =Polynomial division :: x + 1/(x-1)
+partfrac(x^3/(x^2-1),x) :: Polynomial division, Factor the denominator, Set up the partial fractions, Clear the denominators, Solve for the constants :: `A = 1/2` :: `B = 1/2`
+integrate(1/(x^3+4x^2+4x),x) :: Factor the denominator, Set up the partial fractions, Clear the denominators, Solve for the constants, Partial fractions :: `A = 1/4` :: (x+2)^-1/(-2)
