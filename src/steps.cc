@@ -360,7 +360,10 @@ static gen den(const gen & e){
 // c*g as on paper, c evaluated: g, 3*g, 3*g/4 (not g/1, 1/2*g)
 static gen cmul(const gen & c0,const gen & g){
   const gen c=eval(c0,1,contextptr);
-  if (c.type==_FRAC) return sym2(at_division,mul(c._FRACptr->num,g),c._FRACptr->den);
+  if (c.type==_FRAC){
+    const gen n=c._FRACptr->num;
+    return is_strictly_positive(-n,contextptr)?neg(sym2(at_division,mul(-n,g),c._FRACptr->den)):sym2(at_division,mul(n,g),c._FRACptr->den);
+  }
   return is_minus_one(c)?neg(g):mul(c,g);
 }
 // dx, du: the differential of v, for the choice lines
@@ -809,22 +812,26 @@ static __attribute__((noinline)) bool trig_sub(const gen & f,const gen & v,gen &
   choice=meq(S,g[3])+", "+meq(C,g[4])+"\n"+meq(t,g[6]);
   return true;
 }
-// f = c*sin(w)^m*cos(w)^n (products, powers; w linear in v; m, n >= 0)
-static bool sincos(const gen & f,const gen & v,gen & c,gen & w,int & m,int & n){
+// f = c*sin(w)^m*cos(w)^n (products, powers, roots; w linear in v; m, n >= 0 whole or fractions)
+static bool sincos(const gen & f,const gen & v,gen & c,gen & w,gen & m,gen & n){
   if (free_of(f,v)){ c=c*f; return true; }
   if (is_op(f,at_prod)){
     const vecteur a=args(f);
     for (unsigned i=0;i<a.size();++i) if (!sincos(a[i],v,c,w,m,n)) return false;
     return true;
   }
-  int e=1;
-  gen b=f;
-  if (is_op(f,at_pow) && args(f)[1].type==_INT_ && args(f)[1].val>0){ e=args(f)[1].val; b=args(f)[0]; }
+  gen e=1,b=f;
+  if (is_op(f,at_sqrt)){ e=fraction(1,2); b=args(f)[0]; }
+  else if (is_op(f,at_pow)){ // (typed cos(x)^(1/3): the exponent a division until evaluated)
+    e=eval(args(f)[1],1,contextptr);
+    if ((e.type!=_INT_ && e.type!=_FRAC) || !is_strictly_positive(e,contextptr)) return false;
+    b=args(f)[0];
+  }
   if (!is_op(b,at_sin) && !is_op(b,at_cos)) return false;
   const gen a=b._SYMBptr->feuille;
   if ((!is_zero(w) && !(a==w)) || (!(a==v) && is_zero(lin_coef(a,v)))) return false;
   w=a;
-  (is_op(b,at_sin)?m:n)+=e;
+  (is_op(b,at_sin)?m:n)=(is_op(b,at_sin)?m:n)+e;
   return true;
 }
 // trig integrals: an odd power (3 or more) keeps one factor and turns the rest by
@@ -839,21 +846,22 @@ static __attribute__((noinline)) bool trig_rewrite(const gen & f,const gen & v,g
     choice=m(txt(sym2(at_pow,t,2))+" = "+txt(s2)+"-1");
     return true;
   }
-  gen c=1,w=0;
-  int M=0,N=0;
-  if (!sincos(f,v,c,w,M,N) || M+N<2) return false;
+  gen c=1,w=0,Mg=0,Ng=0;
+  if (!sincos(f,v,c,w,Mg,Ng)) return false;
+  const bool mi=Mg.type==_INT_,ni=Ng.type==_INT_;
+  const int M=mi?Mg.val:0,N=ni?Ng.val:0;
   const gen S=sym1(at_sin,w),C=sym1(at_cos,w);
-  if ((M%2 && M>=3) || (N%2 && N>=3)){ // keep one factor of the odd power (sin first: u = cos)
-    const bool s=M%2 && M>=3;
+  if ((mi && M%2 && M>=3) || (ni && N%2 && N>=3)){ // keep one factor of the odd power (sin first: u = cos)
+    const bool s=mi && M%2 && M>=3;
     const gen keep=s?S:C,other=s?C:S;
     const int o=(s?M:N)-1;
     const gen id=sym2(at_binary_minus,1,sym2(at_pow,other,2)); // 1 - cos^2 (or 1 - sin^2)
-    r=inode(mul(mul(c,pw(id,o/2)),mul(pw(other,s?N:M),keep)),v);
+    r=inode(mul(mul(c,pw(id,o/2)),mul(pw(other,s?Ng:Mg),keep)),v);
     label="Pythagorean identity";
     choice=meq(sym2(at_pow,keep,2),id);
     return true;
   }
-  if (M%2 || N%2) return false; // sin*cos^n, sin^n*cos: a u-substitution
+  if (!mi || !ni || M%2 || N%2 || M+N<2) return false; // sin*cos^n, sin^n*cos: a u-substitution
   r=inode(gen(_tlin(eval(f,1,contextptr),contextptr).print(contextptr),contextptr),v);
   label="Power-reducing identity";
   const gen c2=sym1(at_cos,eval(2*w,1,contextptr));
@@ -966,14 +974,31 @@ static __attribute__((noinline)) bool irule(const gen & f,const gen & v,gen & r,
     choice=m(txt(f)+" = "+txt(v)+"^(1/2)"); // (printed, v^(1/2) is sqrt(v) again)
     return true;
   }
-  // a product or integer power of sums that is a polynomial of degree 4 at most: expanded, then
-  // term by term (higher, (x^2+1)^5*x: a u-substitution)
-  if ((s==at_prod || (s==at_pow && a[1].type==_INT_ && a[1].val>=2)) && (contains(f,at_plus) || contains(f,at_binary_minus)) && poly_v(f,v)){
-    const gen d=_degree(makesequence(eval(f,1,contextptr),v),contextptr);
-    if (d.type==_INT_ && d.val<=4){
-    r=inode(gen(normal(eval(f,1,contextptr),contextptr).print(contextptr),contextptr),v);
-    label="Expand";
-    return true;
+  // a product or integer power of sums that is a polynomial of degree 4 at most, or such a
+  // polynomial times a power of v (sqrt(u)*(1-u^2)^2): multiplied out, then term by term (higher,
+  // (x^2+1)^5*x: a u-substitution)
+  if (s==at_prod || (s==at_pow && a[1].type==_INT_ && a[1].val>=2)){
+    const vecteur fs=s==at_prod?a:vecteur(1,f);
+    gen P=1,X=0; // the polynomial part, the exponent of the power of v
+    for (unsigned i=0;i<fs.size();++i){
+      const gen & g=fs[i];
+      if (poly_v(g,v)) P=P*g;
+      else if (is_op(g,at_sqrt) && args(g)[0]==v) X=X+fraction(1,2);
+      else if (is_op(g,at_pow) && args(g)[0]==v && free_of(args(g)[1],v)) X=X+args(g)[1];
+      else { P=0; break; }
+    }
+    const gen E=is_zero(P)?P:normal(eval(P,1,contextptr),contextptr),d=_degree(makesequence(E,v),contextptr);
+    const bool sum=contains(f,at_plus) || contains(f,at_binary_minus);
+    if (!is_zero(E) && d.type==_INT_ && d.val<=(is_zero(X)?4:8) && (sum || !is_zero(X))){
+      const vecteur t=is_op(E,at_plus)?args(E):vecteur(1,E);
+      vecteur T;
+      for (unsigned i=0;i<t.size();++i){ // c*v^k: c*v^(k+X), written (giac's u^4*sqrt(u) would stay)
+        const gen k=_degree(makesequence(t[i],v),contextptr);
+        T.push_back(is_zero(X)?t[i]:cmul(normal(t[i]/pw(v,k),contextptr),pw(v,eval(k+X,1,contextptr))));
+      }
+      r=inode(gen(add(T).print(contextptr),contextptr),v);
+      label=sum?"Expand":"Rewrite as a power"; // (u^2*u^(1/3) = u^(7/3))
+      return true;
     }
   }
   r=table_int(f,v,label,choice);
@@ -1026,6 +1051,25 @@ static __attribute__((noinline)) int itrace(gen & E,const gen & f,const gen & v,
   }
 }
 
+// the terms of a sum, nested sums opened
+static void terms(const gen & g,vecteur & t){
+  if (!is_op(g,at_plus)){ t.push_back(g); return; }
+  const vecteur a=args(g);
+  for (unsigned i=0;i<a.size();++i) terms(a[i],t);
+}
+// t's number constants folded into k (t = k*returned): sin(x)^(11/2)/(11/2) is 2/11 and sin(x)^(11/2)
+static gen cfold(const gen & t,const gen & v,gen & k){
+  if (free_of(t,v)){ k=k*eval(t,1,contextptr); return 1; }
+  if (is_op(t,at_neg)){ k=-k; return cfold(args(t)[0],v,k); }
+  if (is_op(t,at_prod)){
+    const vecteur a=args(t);
+    gen r=1;
+    for (unsigned i=0;i<a.size();++i) r=mul(r,cfold(a[i],v,k));
+    return r;
+  }
+  if (is_op(t,at_division) && free_of(args(t)[1],v)){ k=k/eval(args(t)[1],1,contextptr); return cfold(args(t)[0],v,k); }
+  return t;
+}
 // integrate(f,x) or integrate(f,x,a,b) (in, parsed): its steps, the last being FlowCE's answer
 // (+ C for an antiderivative)
 static int build_integral(const gen & in,const string & answer,string & problem,vector<step> & out){
@@ -1042,7 +1086,17 @@ static int build_integral(const gen & in,const string & answer,string & problem,
     if (!anti(A,f,x)){ out.clear(); return interrupted?STEPS_STOPPED:STEPS_NONE; }
     // the traced form when it keeps a sinh, cosh or tanh the answer wrote in exponentials (x sinh x - cosh x)
     const bool hyp=(contains(F,at_sinh) || contains(F,at_cosh) || contains(F,at_tanh)) && !contains(A,at_sinh) && !contains(A,at_cosh) && !contains(A,at_tanh);
-    put(out,hyp || out.empty() || out.back().expr!=answer?(hyp?"Add the constant":"Simplify"):"Add the constant","",(hyp?out.back().expr:answer)+"+C");
+    // else the traced form, each term simplified, when it is shorter than the answer:
+    // 2*sin(x)^(11/2)/11-..., not 2*(21*sin(x)^4-66*sin(x)^2+77)*sin(x)^(9/2)/(231*sin(x)^3)
+    string ans=answer;
+    if (!hyp && !out.empty()){
+      vecteur t,T;
+      terms(plain_minus(E),t);
+      for (unsigned i=0;i<t.size();++i){ gen k=1; const gen g=cfold(t[i],x,k); T.push_back(cmul(k,g)); }
+      const string s=txt(gen(add(T).print(contextptr),contextptr));
+      if (s.size()<answer.size() && s.find("^-")==string::npos) ans=s; // (not (x+2)^-1/2 for 1/(2*(x+2)))
+    }
+    put(out,hyp || out.empty() || out.back().expr!=ans?(hyp?"Add the constant":"Simplify"):"Add the constant","",(hyp?out.back().expr:ans)+"+C");
     return STEPS_OK;
   }
   // F(b)-F(a), substituted as written, then the value
