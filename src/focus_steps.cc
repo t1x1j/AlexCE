@@ -97,7 +97,13 @@ static int paint(const std::string & problem, const std::vector<step> & v, const
     const char * ch = !i ? "" : card ? (own && v.back().label == "Simplify" ? "simplified" : "") : v[i - 1].choice.c_str();
     const char * ex = !i ? problem.c_str() : card ? v.back().expr.c_str() : v[i - 1].expr.c_str();
     int h = item(lab.c_str(), ch, ex, y, 0, UC_BG) + (card ? 4 : 0);
-    if (y + h > SBOT && i > top) { ui_noclip(); return 1; }
+    if (y + h > SBOT && i > top) {
+      // what fits of it, cut at the bottom (its label and choice at least): a tall question and a
+      // tall first step showed the question alone, as if there were no steps (down shows it whole)
+      if (SBOT - y > 30) item(lab.c_str(), ch, ex, y, 1, UC_BG);
+      ui_noclip();
+      return 1;
+    }
     if (card) {
       ui_rrect(0, MX - 6, y + 2, MW + 12, h - 4, 8, UC_ACCSOFT, UC_BG);
       ui_rframe(0, MX - 6, y + 2, MW + 12, h - 4, 8, UC_ACC, UC_BG);
