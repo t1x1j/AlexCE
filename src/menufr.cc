@@ -854,7 +854,9 @@ const catalogFunc completeCaten[] = { // list of all functions (including some n
   {"cyan", "cyan", "Display option", "#display=cyan", nullptr, CAT_CATEGORY_OPTIONS},
   {"debug(f(args))", nullptr, "Runs user function f in step by step mode.", nullptr, nullptr, CAT_CATEGORY_PROG},
   {"degree(p,x)", nullptr, "Degre of polynomial p in x.", "x^4-1", nullptr, CAT_CATEGORY_POLYNOMIAL},
+#ifdef WITH_DESOLVE
   {"desolve(equation,t,y)", nullptr, "Exact differential equation solving.", "desolve([y'+y=exp(x),y(0)=1])", "[y'=[[1,2],[2,1]]*y+[x,x+1],y(0)=[1,2]]", CAT_CATEGORY_SOLVE | (CAT_CATEGORY_CALCULUS << 8)},
+#endif
   {"det(A)", nullptr, "Determinant of matrix A.", "[[1,2],[3,4]]", nullptr, CAT_CATEGORY_MATRIX},
   {"diff(f,var,[n])", nullptr, "Derivative of expression f with respect to var (order n, n=1 by default), for example diff(sin(x),x) or diff(x^3,x,2). For derivation with respect to x, run f' (shortcut F3). For the gradient of f, var is the list of variables.", "sin(x),x", "sin(x^2),x,3", CAT_CATEGORY_CALCULUS},
   {"draw_arc(x1,y1,rx,ry,theta1,theta2,c)", nullptr, "Pixelised arc of ellipse.", "100,100,60,80,0,pi,magenta", nullptr, CAT_CATEGORY_PROGCMD},
@@ -898,7 +900,9 @@ const catalogFunc completeCaten[] = { // list of all functions (including some n
   {"idn(n)", nullptr, "Identity matrix of order n", "4", nullptr, CAT_CATEGORY_MATRIX},
   {"iegcd(a,b)", nullptr, "Find integers u,v,d such that a*u+b*v=d=gcd(a,b)","23,13", nullptr, CAT_CATEGORY_ARIT},
   {"ifactor(n)", nullptr, "Factorization of an integer (not too large!). Shortcut n=>*", nullptr, nullptr, CAT_CATEGORY_ARIT},
+#ifdef WITH_LAPLACE
   {"ilaplace(f,s,x)", nullptr, "Inverse Laplace transform of f", "s/(s^2+1),s,x", nullptr, CAT_CATEGORY_CALCULUS},
+#endif
   {"im(z)", nullptr, "Imaginary part.", "1+i", nullptr, CAT_CATEGORY_COMPLEXNUM},
   {"inf", "inf", "Plus infinity. -inf for minus infinity and infinity for unsigned/complex infinity. Shortcut shift INS.", "oo", nullptr, CAT_CATEGORY_CALCULUS},
   {"input()", "input()", "Read a string from keyboard", nullptr, nullptr, CAT_CATEGORY_PROG},
@@ -910,7 +914,9 @@ const catalogFunc completeCaten[] = { // list of all functions (including some n
   {"isprime(n)", nullptr, "Returns 1 if n is prime, 0 otherwise.", "11", "10", CAT_CATEGORY_ARIT},
   //{"jordan(A)", 0, "Jordan normal form of matrix A, returns P and D such that P^-1*A*P=D", "[[1,2],[3,4]]", "[[1,1,-1,2,-1],[2,0,1,-4,-1],[0,1,1,1,1],[0,1,2,0,1],[0,0,-3,3,-1]]", CAT_CATEGORY_MATRIX},
   //{"laguerre(n,a,x)", 0, "n-ieme Laguerre polynomial (default a=0).", "10", 0, CAT_CATEGORY_POLYNOMIAL},
+#ifdef WITH_LAPLACE
   {"laplace(f,x,s)", nullptr, "Laplace transform of f","sin(x),x,s", nullptr, CAT_CATEGORY_CALCULUS},
+#endif
   {"lcm(a,b,...)", nullptr, "Least common multiple.", "23,13", "x^2-1,x^3-1", CAT_CATEGORY_ARIT | (CAT_CATEGORY_POLYNOMIAL << 8)},
   {"lcoeff(p,x)", nullptr, "Leading coefficient of polynomial p in x.", "x^4-1", nullptr, CAT_CATEGORY_POLYNOMIAL},
   //{"legendre(n)", 0, "n-the Legendre polynomial.", "10", "10,t", CAT_CATEGORY_POLYNOMIAL},

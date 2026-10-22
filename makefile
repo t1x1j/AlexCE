@@ -22,7 +22,10 @@ UNITS ?= 0
 # Python syntax, as up to v1.7 (released as FlowCE-units.b84 since v1.8). FlowCE Steps: the
 # default build drops Python syntax too, for the worked steps (steps.cc, about 19 KB); units and
 # the steps do not both fit (2,820,034 B), so UNITS=1 builds without the steps (NO_STEPS).
-FEATURE_DEFS = -DWITH_LAPLACE -DWITH_DESOLVE -DWITH_EQW -DWITH_PLOT
+# AlexCE: differential equations (WITH_DESOLVE) and Laplace transforms (WITH_LAPLACE), about
+# 63 KB, give their room to the steps (partial fraction decomposition worked out; the user's
+# choice, 2026-10-21)
+FEATURE_DEFS = -DWITH_EQW -DWITH_PLOT
 ifeq ($(UNITS),1)
     FEATURE_DEFS += -DWITH_UNITS -DNO_STEPS
 else
