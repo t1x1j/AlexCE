@@ -35,6 +35,10 @@ static gen mul(const gen & a,const gen & b){
   if (is_zero(a) || is_zero(b)) return 0;
   if (is_one(a)) return b;
   if (is_one(b)) return a;
+  if (is_minus_one(a)) return sym1(at_neg,b);
+  if (is_minus_one(b)) return sym1(at_neg,a);
+  if (b.type==_SYMB && b._SYMBptr->sommet==at_division && is_one(b._SYMBptr->feuille._VECTptr->front()))
+    return sym2(at_division,a,b._SYMBptr->feuille._VECTptr->back());
   return sym2(at_prod,a,b);
 }
 static gen neg(const gen & a){ return is_zero(a)?gen(0):sym1(at_neg,a); }
@@ -103,9 +107,9 @@ static void unwrap_neg_diff(string & s){
     }
   }
 }
-// a negative factor after * or / in parentheses: exp(-x)*(-1), not exp(-x)*-1 (drawn e^-x·−1)
+// a negative factor after *, /, ^, + or - in parentheses: exp(-x)*(-1), not exp(-x)*-1 (drawn e^-x·−1)
 static void paren_neg(string & s){
-  for (size_t p=s.find_first_of("*/+-");p!=string::npos;p=s.find_first_of("*/+-",p+1)){ // (a--2*b: a-(-2)*b)
+  for (size_t p=s.find_first_of("*/+-^");p!=string::npos;p=s.find_first_of("*/+-^",p+1)){ // (a--2*b: a-(-2)*b; x^(-1))
     if (p+1>=s.size() || s[p+1]!='-') continue;
     size_t i=p+2;
     int depth=0;
@@ -152,6 +156,10 @@ static __attribute__((noinline)) gen tidy(const gen & g){
 static __attribute__((noinline)) string txt(const gen & g){
   string s=plain_minus(tidy(g)).print(contextptr);
   textbook(s);
+  for (size_t q=s.find("(-1)/");q!=string::npos;q=s.find("(-1)/",q)) s.replace(q,5,"-1/"); // ((-1)/x: -1/x)
+  // a factor 1 a rule left in a product (sin(x)*diff(ln(x),x) became sin(x)*1/x): sin(x)/x
+  for (size_t q=s.find("*1/");q!=string::npos;q=s.find("*1/",q)) s.erase(q,2);
+  for (size_t q=s.find("*1*");q!=string::npos;q=s.find("*1*",q)) s.erase(q,2);
   paren_arg(s,"diff(",false);
   paren_arg(s,"integrate(",true);
   paren_neg(s);
@@ -179,6 +187,8 @@ static gen D(const gen & u,const gen & x){
 
 // one rule applied to d/dx u: its result r, the rule's name and what was chosen; false: no rule
 static string uname(const gen & f); // (below)
+// the chain rule's product: times (-1) kept in sight (e^(-x)*(-1)), not folded into a minus sign
+static gen cmulD(const gen & a,const gen & d){ return is_minus_one(d)?sym2(at_prod,a,d):mul(a,d); }
 // a chain rule's choice: outer pre U post, inner U = b (U: u, or w when the variable is u)
 static __attribute__((noinline)) string chain(const string & pre,const string & post,const gen & b,const gen & u){
   const string U=uname(u);
@@ -246,13 +256,13 @@ static bool rule(const gen & u,const gen & x,gen & r,string & label,string & cho
         label="Power rule";
         return true;
       }
-      r=mul(mul(e,pw(b,e1)),D(b,x));
+      r=cmulD(mul(e,pw(b,e1)),D(b,x));
       label="Chain rule";
       choice=chain("","^"+txt(e),b,u);
       return true;
     }
     if (free_of(b,x)){ // (a^u)'=a^u*ln(a)*u'
-      r=mul(mul(u,sym1(at_ln,b)),D(e,x));
+      r=cmulD(mul(u,sym1(at_ln,b)),D(e,x));
       if (e==x) label="Exponential rule";
       else {
         label="Chain rule";
@@ -301,7 +311,7 @@ static bool rule(const gen & u,const gen & x,gen & r,string & label,string & cho
   else if (s==at_abs) fp=sym2(at_division,b,u);
   else return false;
   const string name=s.ptr()->s; // "sin"
-  r=mul(fp,D(b,x));
+  r=cmulD(fp,D(b,x));
   if (b==x) label="Derivative of "+name;
   else {
     label="Chain rule";
@@ -1044,7 +1054,7 @@ static __attribute__((noinline)) bool irule(const gen & f,const gen & v,gen & r,
           if (!is_op(sq,at_pow) || !(args(sq)[1]==2) || !free_of(k,v) || !is_strictly_positive(k,contextptr)) continue;
           const gen w=args(sq)[0],c2=w==v?gen(1):lin_coef(w,v);
           if (is_zero(c2) || (w==v && is_one(k) && is_one(p))) continue; // (1/(1+x^2): the table)
-          const gen sk=normal(eval(sym1(at_sqrt,k),1,contextptr),contextptr),c=normal(eval(p/(c2*sk),1,contextptr),contextptr),at=sym1(at_atan,is_one(sk)?w:sym2(at_division,w,sk));
+          const gen sk=normal(eval(sym1(at_sqrt,k),1,contextptr),contextptr),c=normal(eval(p/(c2*sk),1,contextptr),contextptr),at=sym1(at_atan,is_one(sk)?w:sk.type==_FRAC?cmul(eval(inv(sk,contextptr),1,contextptr),w):sym2(at_division,w,sk)); // (x/(1/2) as 2*x)
           r=cmul(c,at);
           label="Integral of 1/(u^2+a^2)";
           choice=m("a = "+txt(sk));
