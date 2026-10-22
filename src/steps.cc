@@ -159,8 +159,13 @@ static __attribute__((noinline)) string txt(const gen & g){
   return s;
 }
 // math in a choice line, between \1 marks: the Steps screen draws it in 2D
-static string m(const string & s){ return "\x01"+s+"\x01"; }
+static __attribute__((noinline)) string m(const string & s){ return "\x01"+s+"\x01"; }
 static string m(const gen & g){ return m(txt(g)); }
+// a step added to o (one call: building it inline at every use took KBs)
+static __attribute__((noinline)) void put(vector<step> & o,const string & l,const string & c,const string & e){ step s={l,c,e}; o.push_back(s); }
+// "a = b" in a choice line (one call: the string work inline at every use took KBs)
+static __attribute__((noinline)) string meq(const gen & a,const gen & b){ return m(txt(a)+" = "+txt(b)); }
+static __attribute__((noinline)) string meq(const string & a,const gen & b){ return m(a+" = "+txt(b)); }
 
 static gen dnode(const gen & u,const gen & x){ return sym2(at_diff,u,x); }
 // d/dx u written directly when a reader sees it at once (0, 1, a of ax+b), else left as diff(u,x)
@@ -177,7 +182,7 @@ static string uname(const gen & f); // (below)
 // a chain rule's choice: outer pre U post, inner U = b (U: u, or w when the variable is u)
 static __attribute__((noinline)) string chain(const string & pre,const string & post,const gen & b,const gen & u){
   const string U=uname(u);
-  return "outer "+m(pre+U+post)+", inner "+m(U+" = "+txt(b));
+  return "outer "+m(pre+U+post)+", inner "+meq(U,b);
 }
 static bool rule(const gen & u,const gen & x,gen & r,string & label,string & choice){
   choice.clear();
@@ -416,7 +421,7 @@ static gen table_int(const gen & f,const gen & v,string & label,string & choice)
         label=string("Integral of ")+TABLE[k];
         const gen r=quotesubst(gen(TABLE[k+2],contextptr),x,w,contextptr);
         if (!pass) return r;
-        choice=m(uname(f)+" = "+txt(w))+": divide by "+m(txt(a));
+        choice=meq(uname(f),w)+": divide by "+m(txt(a));
         return is_one(a)?r:sym2(at_division,r,den(a));
       }
     }
@@ -481,8 +486,7 @@ static __attribute__((noinline)) bool usub(const gen & f,const gen & v,gen & r,s
     if (!free_of(G0,v) || interrupted) continue;
     const gen G(G0.print(contextptr),contextptr);
     const size_t n0=pre.size();
-    step s={"u-substitution","Let "+m(txt(u)+" = "+txt(b))+", "+m(txt(dvar(u))+" = "+txt(mul(dshow,dvar(v)))),txt(inode(G,u))};
-    pre.push_back(s);
+    put(pre,"u-substitution","Let "+meq(u,b)+", "+meq(dvar(u),mul(dshow,dvar(v))),txt(inode(G,u)));
     gen Eu=inode(G,u);
     ++usub_depth;
     const int k=itrace(Eu,G,u,pre);
@@ -494,7 +498,7 @@ static __attribute__((noinline)) bool usub(const gen & f,const gen & v,gen & r,s
     }
     r=quotesubst(Eu,u,b,contextptr);
     label="Substitute back";
-    choice=m(txt(u)+" = "+txt(b));
+    choice=meq(u,b);
     return true;
   }
   return false;
@@ -632,13 +636,10 @@ static __attribute__((noinline)) gen pf_steps(const gen & e,const gen & v,vector
   if (P.size()<2 || !equal(eval(Pg,1,contextptr),e)) return 0;
   // the steps
   if (txt(Dt)!=txt(D)){
-    step s={"Factor the denominator",m(txt(D)+" = "+txt(Dt)),txt(sym2(at_division,N,Dt))};
-    out.push_back(s);
+    put(out,"Factor the denominator",meq(D,Dt),txt(sym2(at_division,N,Dt)));
   }
-  step s1={"Set up the partial fractions","one term for each factor (and each power)",txt(add(terms))};
-  out.push_back(s1);
-  step s2={"Clear the denominators","multiply both sides by "+m(Dt),txt(N)+" = "+txt(R)};
-  out.push_back(s2);
+  put(out,"Set up the partial fractions","one term for each factor (and each power)",txt(add(terms)));
+  put(out,"Clear the denominators","multiply both sides by "+m(Dt),txt(N)+" = "+txt(R));
   // putting in a root: the highest power's unknown of each linear factor; the rest by coefficients
   string ch;
   vecteur known(U.size(),gen(0));
@@ -650,7 +651,7 @@ static __attribute__((noinline)) gen pf_steps(const gen & e,const gen & v,vector
     const gen x0=_solve(makesequence(fs[k],v),contextptr);
     if (x0.type!=_VECT || x0._VECTptr->size()!=1) return 0;
     const gen r0=x0._VECTptr->front(),cv=eval(quotesubst(cofs[t-1],v,r0,contextptr),1,contextptr);
-    ch+=(ch.empty()?"":"\n")+m(txt(v)+" = "+txt(r0))+": "+m(txt(subst(N,v,r0,false,contextptr))+" = "+txt(mul(cv,U[t-1])))+", "+m(txt(U[t-1])+" = "+txt(val[t-1]));
+    ch+=(ch.empty()?"":"\n")+meq(v,r0)+": "+meq(subst(N,v,r0,false,contextptr),mul(cv,U[t-1]))+", "+meq(U[t-1],val[t-1]);
     known[t-1]=1;
   }
   vecteur left;
@@ -664,14 +665,13 @@ static __attribute__((noinline)) gen pf_steps(const gen & e,const gen & v,vector
       if (!has) continue;
       const int p=co.size()-1-i;
       const gen ci=co[i],cN=_coeff(makesequence(N,v,p),contextptr);
-      ch+="\n"+m(txt(pw(v,p)))+": "+m(txt(normal(ci+cN,contextptr))+" = "+txt(cN));
+      ch+="\n"+m(txt(pw(v,p)))+": "+meq(normal(ci+cN,contextptr),cN);
       ++shown;
     }
     for (unsigned i=0;i<U.size();++i)
-      if (is_zero(known[i])) ch+="\n"+m(txt(U[i])+" = "+txt(val[i]));
+      if (is_zero(known[i])) ch+="\n"+meq(U[i],val[i]);
   }
-  step s3={"Solve for the constants",ch,txt(Pg)};
-  out.push_back(s3);
+  put(out,"Solve for the constants",ch,txt(Pg));
   return Pg;
 }
 static __attribute__((noinline)) bool pfrac(const gen & f,const gen & v,gen & r,string & label,string & choice,vector<step> & pre){
@@ -697,7 +697,7 @@ static __attribute__((noinline)) bool pfrac(const gen & f,const gen & v,gen & r,
   if (!is_op(P,at_plus) && !is_op(P,at_binary_minus)) return false;
   r=inode(P,v);
   label="Partial fractions";
-  choice=m(txt(f)+" = "+txt(P));
+  choice=meq(f,P);
   return true;
 }
 // (Bx+C)/Q, Q quadratic: k*Q'/Q + C2/Q (k = B over Q's x coefficient), the first a ln|Q| by a
@@ -716,7 +716,7 @@ static __attribute__((noinline)) bool split_num(const gen & f,const gen & v,gen 
     if (S==Q) return false;
     r=inode(sym2(at_division,N,S),v);
     label="Complete the square";
-    choice=m(txt(Q)+" = "+txt(S));
+    choice=meq(Q,S);
     return true;
   }
   const gen k=normal(_coeff(makesequence(N,v,1),contextptr)/_coeff(makesequence(dQ,v,1),contextptr),contextptr);
@@ -770,8 +770,7 @@ static __attribute__((noinline)) bool trig_sub(const gen & f,const gen & v,gen &
       const gen q=args(G)[1],c=is_op(q,at_pow)?args(q)[0]:q,n=is_op(q,at_pow)?args(q)[1]:gen(1);
       if (is_op(c,at_cos) && n.type==_INT_ && free_of(args(G)[0],t)) G=mul(args(G)[0],pw(sym1(at_sec,c._SYMBptr->feuille),n));
     }
-    step s={"Trig substitution",m(txt(v)+" = "+txt(g[0]))+", "+m(txt(dvar(v))+" = "+txt(mul(g[1],dvar(t))))+"\n"+m(txt(roots[0])+" = "+txt(g[2])),txt(inode(G,t))};
-    pre.push_back(s);
+    put(pre,"Trig substitution",meq(v,g[0])+", "+meq(dvar(v),mul(g[1],dvar(t)))+"\n"+meq(roots[0],g[2]),txt(inode(G,t)));
     Et=inode(G,t);
     ++usub_depth;
     const int kk=itrace(Et,G,t,pre);
@@ -807,7 +806,7 @@ static __attribute__((noinline)) bool trig_sub(const gen & f,const gen & v,gen &
   for (size_t q=fs.find(from);q!=string::npos;q=fs.find(from,q+to.size())) fs.replace(q,from.size(),to);
   r=gen(fs,contextptr);
   label="Back-substitute";
-  choice=m(txt(S)+" = "+txt(g[3]))+", "+m(txt(C)+" = "+txt(g[4]))+"\n"+m(txt(t)+" = "+txt(g[6]));
+  choice=meq(S,g[3])+", "+meq(C,g[4])+"\n"+meq(t,g[6]);
   return true;
 }
 // f = c*sin(w)^m*cos(w)^n (products, powers; w linear in v; m, n >= 0)
@@ -851,15 +850,15 @@ static __attribute__((noinline)) bool trig_rewrite(const gen & f,const gen & v,g
     const gen id=sym2(at_binary_minus,1,sym2(at_pow,other,2)); // 1 - cos^2 (or 1 - sin^2)
     r=inode(mul(mul(c,pw(id,o/2)),mul(pw(other,s?N:M),keep)),v);
     label="Pythagorean identity";
-    choice=m(txt(sym2(at_pow,keep,2))+" = "+txt(id));
+    choice=meq(sym2(at_pow,keep,2),id);
     return true;
   }
   if (M%2 || N%2) return false; // sin*cos^n, sin^n*cos: a u-substitution
   r=inode(gen(_tlin(eval(f,1,contextptr),contextptr).print(contextptr),contextptr),v);
   label="Power-reducing identity";
   const gen c2=sym1(at_cos,eval(2*w,1,contextptr));
-  choice=M?m(txt(sym2(at_pow,S,2))+" = "+txt(sym2(at_division,sym2(at_binary_minus,1,c2),2))):string();
-  if (N) choice+=(M?", ":"")+m(txt(sym2(at_pow,C,2))+" = "+txt(sym2(at_division,sym2(at_plus,1,c2),2)));
+  choice=M?meq(sym2(at_pow,S,2),sym2(at_division,sym2(at_binary_minus,1,c2),2)):string();
+  if (N) choice+=(M?", ":"")+meq(sym2(at_pow,C,2),sym2(at_division,sym2(at_plus,1,c2),2));
   return true;
 }
 
@@ -908,7 +907,7 @@ static __attribute__((noinline)) bool irule(const gen & f,const gen & v,gen & r,
       if (is_op(q,at_pow) && free_of(args(q)[1],v)){ base=args(q)[0]; nb=args(q)[1]; }
       const gen c=lin_coef(base,v);
       if (!is_zero(c)){
-        choice=m(uname(f)+" = "+txt(base));
+        choice=meq(uname(f),base);
         if (is_one(nb)){ r=cmul(p/c,sym1(at_ln,sym1(at_abs,base))); label="Log rule"; return true; }
         const gen e=eval(1-nb,1,contextptr);
         r=sym2(at_division,cmul(p/c,pw(base,e)),den(e));
@@ -940,7 +939,7 @@ static __attribute__((noinline)) bool irule(const gen & f,const gen & v,gen & r,
         const gen e=eval(-n,1,contextptr);
         r=mul(p,inode(sym2(at_pow,v,e),v));
         label="Rewrite as a power";
-        choice=m(txt(sym2(at_division,1,q))+" = "+txt(sym2(at_pow,v,e)));
+        choice=meq(sym2(at_division,1,q),sym2(at_pow,v,e));
         return true;
       }
     }
@@ -957,7 +956,7 @@ static __attribute__((noinline)) bool irule(const gen & f,const gen & v,gen & r,
     if (!is_zero(c) && !is_zero(e1)){
       r=sym2(at_division,pw(a[0],e1),den(eval(e1*c,1,contextptr)));
       label="Power rule";
-      choice=m(uname(f)+" = "+txt(a[0]));
+      choice=meq(uname(f),a[0]);
       return true;
     }
   }
@@ -1018,13 +1017,11 @@ static __attribute__((noinline)) int itrace(gen & E,const gen & f,const gen & v,
     if (r<0 || out.size()+pre.size()>=STEPS_MAX || !anti(E,f,v))
       return interrupted?STEPS_STOPPED:STEPS_NONE;
     for (unsigned i=0;i<pre.size();++i) out.push_back(pre[i]);
-    step s={label,choice,txt(E)};
-    out.push_back(s);
+    put(out,label,choice,txt(E));
     string l2,c2;
     if (again(E,f,v,l2,c2)){
       if (!anti(E,f,v)) return interrupted?STEPS_STOPPED:STEPS_NONE;
-      step t={l2,c2,txt(E)};
-      out.push_back(t);
+      put(out,l2,c2,txt(E));
     }
   }
 }
@@ -1045,8 +1042,7 @@ static int build_integral(const gen & in,const string & answer,string & problem,
     if (!anti(A,f,x)){ out.clear(); return interrupted?STEPS_STOPPED:STEPS_NONE; }
     // the traced form when it keeps a sinh, cosh or tanh the answer wrote in exponentials (x sinh x - cosh x)
     const bool hyp=(contains(F,at_sinh) || contains(F,at_cosh) || contains(F,at_tanh)) && !contains(A,at_sinh) && !contains(A,at_cosh) && !contains(A,at_tanh);
-    step s={hyp || out.empty() || out.back().expr!=answer?(hyp?"Add the constant":"Simplify"):"Add the constant","",(hyp?out.back().expr:answer)+"+C"};
-    out.push_back(s);
+    put(out,hyp || out.empty() || out.back().expr!=answer?(hyp?"Add the constant":"Simplify"):"Add the constant","",(hyp?out.back().expr:answer)+"+C");
     return STEPS_OK;
   }
   // F(b)-F(a), substituted as written, then the value
@@ -1056,10 +1052,8 @@ static int build_integral(const gen & in,const string & answer,string & problem,
     out.clear();
     return interrupted?STEPS_STOPPED:STEPS_NONE;
   }
-  step s={"Evaluate at the bounds","from "+m(a[2])+" to "+m(a[3]),txt(V)};
-  out.push_back(s);
-  step t={"Simplify","",answer};
-  out.push_back(t);
+  put(out,"Evaluate at the bounds","from "+m(a[2])+" to "+m(a[3]),txt(V));
+  put(out,"Simplify","",answer);
   return STEPS_OK;
 }
 
@@ -1082,8 +1076,7 @@ static int build_partfrac(const gen & in,const string & answer,string & problem,
   if (dn.val>=dd.val){
     Q=_quo(makesequence(N,D,v),contextptr);
     e=normal(_rem(makesequence(N,D,v),contextptr)/D,contextptr);
-    step s={"Polynomial division",m(txt(a[0])+" = "+txt(Q)+" + "+txt(e)),txt(sym2(at_plus,Q,e))};
-    out.push_back(s);
+    put(out,"Polynomial division",m(txt(a[0])+" = "+txt(Q)+" + "+txt(e)),txt(sym2(at_plus,Q,e)));
   }
   gen P=pf_steps(e,v,out);
   if (is_zero(P) && !is_zero(Q)) P=e; // (x^3+1)/(x^2-1) = x + 1/(x-1): nothing left to split
@@ -1131,15 +1124,13 @@ int steps_build(const char * input,const string & answer,string & problem,vector
     if (ids[i]!=x && contains(eval(ids[i],1,contextptr),x)) return STEPS_NONE;
   for (int k=1;k<=n;++k){
     if (k>1){
-      step s={"Differentiate again",k==2?"the second derivative":"the third derivative",txt(dnode(f,x))};
-      out.push_back(s);
+      put(out,"Differentiate again",k==2?"the second derivative":"the third derivative",txt(dnode(f,x)));
     }
     const gen d=derive(eval(f,1,contextptr),x,contextptr); // giac's derivative: each step must equal it
     gen g=D(f,x);
     if (!is_op(g,at_diff)){ // a constant or linear function: one step, checked as the others
       if (!same(g,d)){ out.clear(); return interrupted?STEPS_STOPPED:STEPS_NONE; }
-      step s={is_zero(g)?"Constant rule":"Linear function","",txt(g)};
-      out.push_back(s);
+      put(out,is_zero(g)?"Constant rule":"Linear function","",txt(g));
     }
     for (;;){
       string label,choice;
@@ -1150,16 +1141,14 @@ int steps_build(const char * input,const string & answer,string & problem,vector
         out.clear();
         return interrupted?STEPS_STOPPED:STEPS_NONE;
       }
-      step s={label,choice,txt(g)};
-      out.push_back(s);
+      put(out,label,choice,txt(g));
     }
     // no diff left: the derivative (normal keeps sin, cos; factor keeps (x+1)^2), parsed again from
     // its text, unevaluated as the input: evaluated, a/b is a*inv(b), which no rule differentiates
     last=normal(eval(g,1,contextptr),contextptr);
     f=gen(factor(last,false,contextptr).print(contextptr),contextptr);
     if (k<n){
-      step s={"Simplify","",txt(f)};
-      out.push_back(s);
+      put(out,"Simplify","",txt(f));
     }
   }
   // the last step is the answer as FlowCE shows it, which must be what the steps found
@@ -1167,8 +1156,7 @@ int steps_build(const char * input,const string & answer,string & problem,vector
   if (interrupted){ out.clear(); return STEPS_STOPPED; }
   if (!equal(last,A)){ out.clear(); return interrupted?STEPS_STOPPED:STEPS_NONE; } // (f: parsed, its a-b unevaluated)
   if (out.empty() || out.back().expr!=answer){
-    step s={"Simplify","",answer};
-    out.push_back(s);
+    put(out,"Simplify","",answer);
   }
   return STEPS_OK;
 }
