@@ -4,6 +4,7 @@
 // once (a constant, x, a linear ax+b) are written directly. After each step the expression is
 // evaluated and compared with giac's derivative: a step that does not check discards the trace.
 #ifndef NO_STEPS // (UNITS=1: units and the steps do not both fit, makefile)
+#include <float.h>
 #include <string.h>
 #include <stdlib.h>
 #include <time.h> // (before giac: first.h defines a clock macro)
@@ -359,8 +360,11 @@ static __attribute__((noinline)) int numeq(const gen & a,const gen & b){
     const gen ea=evalf(subst(a,ok,vals,false,contextptr),1,contextptr),eb=evalf(subst(b,ok,vals,false,contextptr),1,contextptr);
     if (interrupted) return -1;
     if (ea.type!=_DOUBLE_ || eb.type!=_DOUBLE_ || ea._DOUBLE_val!=ea._DOUBLE_val || eb._DOUBLE_val!=eb._DOUBLE_val) continue;
-    const double x=ea._DOUBLE_val,y=eb._DOUBLE_val;
-    if (std::abs(x-y)>1e-9*(1+std::abs(x)+std::abs(y))) return 0;
+    // tolerances from the machine's doubles: 4 bytes (6 digits) on the calculator, 8 on a PC (a 1e-9
+    // check failed every step on the calculator that needed this test); in between: undecided
+    const double x=ea._DOUBLE_val,y=eb._DOUBLE_val,sc=1+std::abs(x)+std::abs(y),eq=DBL_EPSILON*2048>1e-9?DBL_EPSILON*2048:1e-9;
+    if (std::abs(x-y)>1e-2*sc) return 0;
+    if (std::abs(x-y)>eq*sc) return -1;
     ++n;
   }
   return n>=3?1:-1;
