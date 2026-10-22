@@ -38,7 +38,7 @@ look, math drawn as you type it, and keys that work the way a TI user expects.
   partial fractions, arc length and surface area), improper integrals that say *diverges* when
   they do, limits that say *does not exist* (with the left and right values), series and power
   series sums (a decimal value when there is no closed form), Taylor series, Riemann sums,
-  differential equations with initial values, parametric and polar areas, gradients and
+  parametric and polar areas, gradients and
   directional derivatives, multiple integrals, complex numbers, vectors.
 - **Keys that work like a TI's.** `(-)` is a minus sign and `2nd (-)` is **Ans**. Starting a line
   with `×`, `÷`, `+`, `−` or `^` works on the last answer (`× 2 enter` doubles it). `2nd enter`
