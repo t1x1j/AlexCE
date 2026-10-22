@@ -281,8 +281,8 @@ async function proceed(c) {
   // could replace the reset INST leaves for the OS. So nothing more is sent.
   say('st-finish', autoInst
     ? '<strong>Press <kbd>enter</kbd> on the calculator</strong> (the arTIfiCE shell shows INST). That\'s the only key: ' +
-      'it installs AlexCE, counting down from 43 to 0, and restarts by itself (<em>"RAM Cleared"</em>). Don\'t touch it meanwhile.'
-    : 'On the calculator, press <kbd>enter</kbd> to start INST, then <kbd>enter</kbd> again to install. It counts down from 43 to 0. ' +
+      'it installs AlexCE, counting down from 42 to 0, and restarts by itself (<em>"RAM Cleared"</em>). Don\'t touch it meanwhile.'
+    : 'On the calculator, press <kbd>enter</kbd> to start INST, then <kbd>enter</kbd> again to install. It counts down from 42 to 0. ' +
       'At <em>"Success! Will now reset"</em>, press <kbd>enter</kbd>, then <kbd>mode</kbd>.');
 }
 
