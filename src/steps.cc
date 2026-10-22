@@ -591,7 +591,7 @@ static __attribute__((noinline)) bool usub(const gen & f,const gen & v,gen & r,s
         bool root=contains(G0,at_sqrt); // (or u^(1/2), as giac may write it)
         const vecteur gp=lop(G0,at_pow);
         for (unsigned i=0;i<gp.size();++i) if (args(gp[i])[1].type==_FRAC) root=true;
-        if (is_zero(lin_coef(b,v)) && (root || contains(G0,at_ln)) && !vfac(G0,u,P1,X1,1)) continue; // (not sqrt(u)/(2u+8), nor ln(u) from x = ln(u))
+        if ((root || contains(G0,at_ln)) && !vfac(G0,u,P1,X1,1)) continue; // (not sqrt(u)/(2u+8), sqrt(u-1)/u, nor ln(u) from x = ln(u))
       }
     }
     if (!free_of(G0,v) || has_i(G0) || interrupted) continue;
